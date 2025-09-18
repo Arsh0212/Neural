@@ -100,7 +100,10 @@ class NeuralNetworkApp {
         });
         
         // Setup WebSocket
-        this.wsManager = new WebSocketManager('ws://localhost:8000/ws/training/', {
+        const loc = window.location;
+        let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
+        let endpoint = wsStart + loc.host + "/ws/training/";
+        this.wsManager = new WebSocketManager(endpoint, {
             onOpen: () => {
                 this.metricsPanel.updateStatus(true);
             },
