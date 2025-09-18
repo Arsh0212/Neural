@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-u4kasw_%_qpx!9q7)zg^bf@@cbn^#_8pibh)osld=b4gmdqcdn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['neural-lvo1.onrender.com']
 
 
 # Application definition
