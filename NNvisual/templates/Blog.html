@@ -1,0 +1,703 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A comprehensive guide to understanding neural networks, deep learning, and AI for beginners">
+    <meta name="keywords" content="neural networks, deep learning, AI, machine learning, artificial intelligence">
+    <title>Neural Networks - A Complete Guide for Everyone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #dbeafe;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-color: #e2e8f0;
+            --warning-bg: #fef3c7;
+            --warning-border: #f59e0b;
+            --info-bg: #eff6ff;
+            --info-border: #3b82f6;
+            --success-bg: #f0fdf4;
+            --success-border: #22c55e;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 8px;
+            --radius-lg: 12px;
+            --max-width: 900px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-size: 16px;
+            padding: var(--spacing-md);
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            background: var(--surface-color);
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 3px solid var(--primary-color);
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-dark);
+            border-radius: 2px;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 2.5rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .home-button {
+            position: fixed;
+            top: var(--spacing-lg);
+            left: var(--spacing-lg);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            padding: var(--spacing-sm) var(--spacing-md);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            z-index: 100;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            text-decoration: none;
+        }
+
+        .home-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .home-button::before {
+            content: '🏠';
+            font-size: 1rem;
+        }
+
+        .table-of-contents {
+            background: var(--info-bg);
+            border-left: 4px solid var(--info-border);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius);
+        }
+
+        .table-of-contents h3 {
+            margin-bottom: var(--spacing-md);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-list li {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .toc-list a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+            display: block;
+            padding: var(--spacing-xs);
+            border-radius: var(--radius);
+        }
+
+        .toc-list a:hover {
+            color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .section {
+            margin-bottom: var(--spacing-xl);
+            scroll-margin-top: var(--spacing-lg);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: var(--spacing-sm);
+            position: relative;
+        }
+
+        .section h3 {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .content {
+            font-size: 1.1rem;
+            margin-bottom: var(--spacing-lg);
+            color: var(--text-primary);
+        }
+
+        .intro-box {
+            background: var(--info-bg);
+            border-left: 4px solid var(--info-border);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius);
+            position: relative;
+        }
+
+        .intro-box::before {
+            content: '💡';
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            font-size: 1.5rem;
+        }
+
+        .component-list {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius);
+        }
+
+        .formula {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-size: 1rem;
+            position: relative;
+        }
+
+        .formula::before {
+            content: 'Formula';
+            position: absolute;
+            top: var(--spacing-xs);
+            right: var(--spacing-sm);
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .network-diagram {
+            background: linear-gradient(135deg, var(--primary-light), #f1f5f9);
+            border: 2px solid var(--primary-color);
+            padding: var(--spacing-xl);
+            margin: var(--spacing-lg) 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            text-align: center;
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .network-diagram::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.2; }
+        }
+
+        .highlight-box {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--radius);
+            position: relative;
+        }
+
+        .highlight-box::before {
+            content: '⚡';
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            font-size: 1.5rem;
+        }
+
+        .image {
+            margin: var(--spacing-lg) 0;
+            text-align: center;
+        }
+
+        .image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        ul {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--text-primary);
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            font-size: 1.2rem;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-sm);
+            }
+            
+            .container {
+                padding: var(--spacing-lg);
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .section h3 {
+                font-size: 1.2rem;
+            }
+            
+            .content {
+                font-size: 1rem;
+            }
+
+            .home-button {
+                top: var(--spacing-sm);
+                left: var(--spacing-sm);
+                padding: var(--spacing-xs) var(--spacing-sm);
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            
+            .back-to-top,
+            .progress-bar,
+            .home-button {
+                display: none;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+            
+            .back-to-top,
+            .toc-list a,
+            .home-button {
+                transition: none;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: none; opacity: 0.5; }
+                50% { transform: none; opacity: 0.2; }
+            }
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            :root {
+                --primary-color: #0000ff;
+                --text-primary: #000000;
+                --text-secondary: #000000;
+                --border-color: #000000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <a href="/NN" class="home-button">Home</a>
+    
+    <div class="container">
+        <header class="header">
+            <h1>Neural Networks</h1>
+            <p class="subtitle">A Basic Guide for Everyone</p>
+        </header>
+
+        <nav class="table-of-contents">
+            <h3>Table of Contents</h3>
+            <ul class="toc-list">
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#components">Common Components</a></li>
+                <li><a href="#creating-network">Creating Our Own Network</a></li>
+                <li><a href="#loss-function">Loss Function & Training</a></li>
+            </ul>
+        </nav>
+
+        <section id="introduction" class="section">
+            <div class="intro-box">
+                <div class="content">
+                    Neural Networks are a fundamental part of Deep Learning in Artificial Intelligence. 
+                    They work on the principle of regression enhanced with additional functions to improve predictions and results.
+                </div>
+                <div class="content">
+                    At its core, neural networks use mathematics: linear regression, matrix multiplication, 
+                    gradient descent, and essential mathematical equations to predict outcomes based on input data. 
+                    They fall under supervised learning, where the model is trained with:
+                </div>
+                <ul>
+                    <li><strong>Input data</strong> (e.g., images of burgers and pizzas)</li>
+                    <li><strong>Corresponding labels</strong> for each item</li>
+                </ul>
+            </div>
+
+            <div class="content">
+                Through mathematical computations, the model creates equations that form patterns to detect and classify data. 
+                These patterns can be complex and sometimes difficult to interpret. After training on numerous examples with 
+                proper parameter tuning (fine-tuning), the model becomes ready to make predictions on completely new, unseen data.
+            </div>
+        </section>
+
+        <section id="components" class="section">
+            <h2>Common Components of a Neural Network</h2>
+            <div class="component-list">
+                <ul>
+                    <li><strong>Nodes</strong> - Basic processing units</li>
+                    <li><strong>Layers</strong> - Input Layer, Hidden Layers, Output Layer</li>
+                    <li><strong>Weights</strong> - Connection strengths between nodes</li>
+                    <li><strong>Activation Functions</strong> - Non-linear transformations</li>
+                    <li><strong>Loss Functions</strong> - Error measurement</li>
+                    <li><strong>Learning Rate</strong> - Training speed control</li>
+                    <li><strong>Bias</strong> - Threshold adjustments</li>
+                </ul>
+            </div>
+
+            <h3>Nodes</h3>
+            <div class="content">
+                In simple terms, a node represents a specific pattern that the model has learned to recognize in data. 
+                Each node processes information and is represented numerically, as everything in neural networks is quantified.
+            </div>
+
+            <h3>Layers</h3>
+            <div class="content">
+                A layer consists of multiple nodes working together. The input layer typically has as many nodes as there are input features. 
+                For example, if we're working with 2D coordinates (x, y), we'd have two input nodes.
+            </div>
+            <div class="content">
+                Hidden layers determine the complexity of our model. The number of hidden layers and nodes is often determined through experimentation to find the optimal configuration.
+            </div>
+            <div class="content">
+                The output layer depends on the number of categories we want to classify. For binary classification (yes/no decisions), we typically use one output node.
+            </div>
+
+            <h3>Weights</h3>
+            <div class="content">
+                Weights determine how much influence one node has on the nodes in the next layer. They're the key to the network's learning process, 
+                adjusted through backpropagation to minimize prediction errors.
+            </div>
+            <div class="content">
+                Node values are calculated through matrix multiplication of the previous layer's values with the connecting weights, 
+                plus a bias term for each node.
+            </div>
+
+            <h3>Activation Functions</h3>
+            <div class="content">
+                Without activation functions, neural networks would simply be complex linear regression models, limited in their ability to learn complex patterns. 
+                Activation functions introduce non-linearity. A common example is ReLU: f(x) = max(0, x).
+            </div>
+
+            <h3>Loss Function</h3>
+            <div class="content">
+                The loss function is crucial for training. It measures the difference between predicted and actual outputs, 
+                providing the feedback needed to adjust weights and biases through backpropagation.
+            </div>
+
+            <h3>Learning Rate</h3>
+            <div class="content">
+                Learning rate controls how much weights and biases change during training. A low learning rate means slow, 
+                gradual changes that may take longer to converge. A high learning rate means faster changes but risks overshooting optimal values.
+            </div>
+        </section>
+        <div class="image">
+            <img src="{% static 'images/word-image-27980-1.png' %}" alt="Neural Network Architecture Diagram" loading="lazy">
+        </div>
+
+        <section id="creating-network" class="section">
+            <h2>Creating Our Own Basic Neural Network</h2>
+            <div class="content">
+                Let's design a simple network with:
+            </div>
+            <ul>
+                <li>2 input features (x and y coordinates)</li>
+                <li>One hidden layer with 4 nodes</li>
+                <li>One output layer with a single node</li>
+            </ul>
+
+            <div class="image">
+                <img src="{% static 'images/Screenshot 2025-09-18 170556.png' %}" alt="Neural Network Architecture Diagram" loading="lazy">
+            </div>
+
+            <div class="content">
+                For the input layer, each feature will have its own set of weights connecting to each hidden node.
+            </div>
+
+            <div class="formula">
+X · W + B = a
+f(a) = A
+            </div>
+
+            <div class="content">
+                Where:
+                <ul>
+                    <li>X = Input matrix</li>
+                    <li>W = Weight matrix</li>
+                    <li>B = Bias matrix</li>
+                    <li>a = Pre-activation values</li>
+                    <li>f() = Activation function</li>
+                    <li>A = Activated values</li>
+                </ul>
+            </div>
+
+            <div class="image">
+                <img src="{% static 'images/Screenshot 2025-09-18 170732.png' %}" alt="Matrix Multiplication Input to Hidden Layer" loading="lazy">
+            </div>
+
+            <div class="content">
+                We multiply the input matrix with the weight matrix, add bias, then apply an activation function to get the hidden layer values.
+            </div>
+
+            <div class="content">
+                For the output layer, the process is similar:
+            </div>
+
+            <div class="formula">
+A · W₂ + B₂ = z
+f(z) = Z
+            </div>
+
+            <div class="image">
+                <img src="{% static 'images/Screenshot 2025-09-18 170833.png' %}" alt="Hidden to Output Layer Calculation" loading="lazy">
+            </div>
+
+            <div class="content">
+                The activated hidden layer values are multiplied with output weights, bias is added, and an activation function produces the final prediction.
+            </div>
+        </section>
+
+        <section id="loss-function" class="section">
+            <h3>Loss Function & Training Process</h3>
+            <div class="formula">
+L = ½(Z - Y)²
+            </div>
+
+            <div class="content">
+                Where:
+                <ul>
+                    <li>L = Loss (error)</li>
+                    <li>Z = Predicted output</li>
+                    <li>Y = Actual target value</li>
+                </ul>
+            </div>
+
+            <div class="highlight-box">
+                <div class="content">
+                    <strong>Training Process:</strong> After calculating the loss, backpropagation adjusts weights and biases throughout the network. 
+                    This process repeats for many iterations across multiple input examples until the model learns optimal parameters 
+                    for making accurate predictions on new, unseen data.<br>BackPropagation is a bit complex topic so we will discuss about them in later versions.
+                </div>
+            </div>
+
+            <div class="content">
+                The beauty of neural networks lies in their ability to automatically discover patterns in data through this iterative learning process. 
+                Once trained with sufficient examples and proper tuning, the network can generalize its knowledge to make predictions on real-world data 
+                it has never encountered before.
+            </div>
+        </section>
+    </div>
+
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Progress bar functionality
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progressBar').style.width = scrolled + '%';
+        });
+
+        // Back to top button
+        const backToTopButton = document.getElementById('backToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Smooth scrolling for table of contents links
+        document.querySelectorAll('.toc-list a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add loading animation
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

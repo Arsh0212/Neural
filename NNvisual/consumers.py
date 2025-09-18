@@ -1,0 +1,53 @@
+from channels.generic.websocket import AsyncWebsocketConsumer
+from .models import NeuralNetwork
+from asgiref.sync import sync_to_async
+import json
+
+class NeuralNetworkConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        channel_name = "neural_network_updates"
+        await self.channel_layer.group_add(channel_name, self.channel_name)
+        await self.accept()
+
+        nn = await sync_to_async(NeuralNetwork.objects.get)(id=1)
+        await self.send(text_data=json.dumps({
+            "type": "config",
+            "config": {
+                "epochs": nn.epoch,
+                "batchSize": nn.batch_size,
+                "learningRate": nn.learning_rate,
+                "activationFunction": nn.activation_function,
+                "datasetFunction" : nn.dataset
+            }
+        }))
+
+    async def disconnect(self, close_code):
+        channel_name = "neural_network_updates"
+        await self.channel_layer.group_discard(channel_name, self.channel_name)
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        # You could use this to pause/resume training, etc.
+        if data.get("type") == "config": 
+            data = data.get("config") 
+            print(data)          
+            await sync_to_async(NeuralNetwork.objects.update_or_create)(
+                id = 1,
+                defaults= {
+                "epoch" : data.get("epochs"),
+                "batch_size" : data.get("batchSize"),
+                "learning_rate" : data.get("learningRate"),
+                "activation_function" : data.get("activationFunction"),
+                "dataset" : data.get("datasetFunction")
+                }
+            )
+
+    # Receive message from the group (from train_model.py)
+    async def send_epoch_update(self, event):
+        # event["data"] contains the payload sent from WSLogger callback
+        await self.send(text_data=json.dumps(event))
+
+    async def training_update(self, event):
+        # event["data"] contains the payload sent from train_model.py
+        if event["type"] == "training_update":
+            await self.send(text_data=json.dumps(event))

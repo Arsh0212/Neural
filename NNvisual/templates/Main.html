@@ -1,0 +1,33 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Visualization - D3.js</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link rel="stylesheet" href="{% static 'tempstyles.css' %}">
+</head>
+<body>
+    <div id="neural-network-app"></div>
+
+    <!-- Component Scripts -->
+    <script src="{% static 'components/NetworkRenderer.js' %}"></script>
+    <script src="{% static 'components/MatrixDisplay.js' %}"></script>
+    <script src="{% static 'components/WebSocketManager.js' %}"></script>
+    <script src="{% static 'components/NetworkLayout.js' %}"></script>
+    <script src="{% static 'components/MetricsPanel.js' %}"></script>
+    <script src="{% static 'components/NeuralNetworkApp.js' %}"></script>
+
+    <script>
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new NeuralNetworkApp('neural-network-app');
+        });
+    </script>
+
+    <style>
+    </style>
+</body>
+</html>

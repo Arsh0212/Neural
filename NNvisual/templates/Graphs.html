@@ -1,0 +1,936 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Decision Boundary</title>
+    <link rel="stylesheet" href="{% static 'graph_styles.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+</head>
+<body>
+    <div class="status" id="connectionStatus">
+        <div class="loading-spinner"></div>
+        <div class="status-title">Connection Status</div>
+        <div>Connecting to neural network...</div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-title">Neural Network Decision Boundary</div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <!-- <label>Resolution</label> -->
+                    <!-- <div id="resolution" , value="40">
+                    </div> -->
+                    <input type="hidden" id="resolution" value="40" min="20" max="100">
+                </div>
+                <div class="control-group">
+                    <!-- <label>Contours</label> -->
+                    <input type="hidden" id="showContours" checked>
+                </div>
+                <div class="control-group">
+                    <!-- <label>Performance</label> -->
+                    <div class="performance-toggle">
+                        <!-- <div class="toggle-button active" type="hidden" data-mode="high">High</div>
+                        <div class="toggle-button" type="hidden" data-mode="low">Low</div> -->
+                    </div>
+                </div>
+                <div class="control-group">
+                    <!-- <label>Auto-Update</label> -->
+                    <input type="hidden" id="autoUpdate" checked>
+                </div>
+            </div>
+            
+            <!-- Replace the existing epoch-info div with this enhanced version -->
+            <div class="epoch-info">
+                <div class="metrics-group">
+                    <div class="metric">
+                        <span>Epoch:</span>
+                        <span class="epoch-value" id="currentEpoch">-</span>
+                    </div>
+                    <div class="metric">
+                        <span>Accuracy:</span>
+                        <span class="accuracy-value" id="accuracyValue">-</span>
+                    </div>
+                    <div class="metric fps-counter">
+                        <span>FPS:</span>
+                        <span id="fpsValue">-</span>
+                    </div>
+                </div>
+                
+                <div class="graph-action-buttons">
+                    <button type="button" class="graph-btn graph-train-btn" id="graphTrainBtn">
+                        <span class="graph-btn-icon">🚀</span>
+                        Train
+                    </button>
+                    <button type="button" class="graph-btn graph-home-btn" id="graphHomeBtn">
+                        <span class="graph-btn-icon">🏠</span>
+                        Home
+                    </button>
+                </div>
+            </div>
+            
+            <svg id="plot-svg"></svg>
+            
+            <div class="performance-stats">
+                Points: <span id="pointCount">0</span> | 
+                Render time: <span id="renderTime">0</span>ms |
+                Updates: <span id="updateCount">0</span>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color class-0"></div>
+                    <span>Class 0 (Red)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color class-1"></div>
+                    <span>Class 1 (Teal)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: white; height: 2px; width: 20px; border-radius: 1px;"></div>
+                    <span>Decision Boundary</span>
+                </div>
+                <div class="legend-item">
+                    <div style="width: 14px; height: 14px; border: 2px solid #ff0000; border-radius: 50%;"></div>
+                    <span>Misclassified</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class OptimizedNeuralViz {
+            constructor() {
+                this.data = { x: [], y: [], labels: [], predicted: [] };
+                
+                // Performance optimization settings
+                this.performanceMode = 'high';
+                this.maxRenderPoints = 5000;
+                this.updateThrottle = 50; // ms
+                this.lastUpdateTime = 0;
+                this.frameCount = 0;
+                this.fps = 0;
+                this.updateCount = 0;
+                
+                // Cached elements and computations
+                this.cachedGridPoints = null;
+                this.cachedBoundary = null;
+                this.lastResolution = null;
+                
+                // Canvas dimensions
+                this.width = 0;
+                this.height = 0;
+                this.margin = { top: 20, right: 20, bottom: 40, left: 50 };
+                
+                // Data extents with adaptive padding
+                this.xExtent = [-3, 3];
+                this.yExtent = [-3, 3];
+                
+                // Current state
+                this.currentEpoch = 0;
+                this.accuracy = 0;
+                this.hasData = false;
+                this.isRendering = false;
+                
+                // D3 selections (cached)
+                this.svg = d3.select('#plot-svg');
+                this.plotGroup = null;
+                
+                // WebSocket and data management
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                
+                // Animation and interaction
+                this.animationFrame = null;
+                this.renderQueue = [];
+                
+                this.init();
+                this.initWebSocket();
+                this.startFPSCounter();
+                this.initializeGraphButtons();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.updateDimensions();
+                this.setupScales();
+                this.setupSVG();
+                this.initializePerformanceMode();
+            }
+
+            setupEventListeners() {
+                // Throttled resize handler
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => this.handleResize(), 150);
+                });
+                
+                // Control event listeners with debouncing
+                const debounce = (func, wait) => {
+                    let timeout;
+                    return (...args) => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => func.apply(this, args), wait);
+                    };
+                };
+                
+                document.getElementById('resolution').addEventListener('input', 
+                    debounce(() => this.onSettingsChange(), 300));
+                
+                document.getElementById('showContours').addEventListener('change', 
+                    () => this.onSettingsChange());
+                
+                document.getElementById('autoUpdate').addEventListener('change', 
+                    (e) => this.autoUpdate = e.target.checked);
+                
+                // Performance mode toggle
+                document.querySelectorAll('.toggle-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.performanceMode = e.target.dataset.mode;
+                        this.updatePerformanceSettings();
+                    });
+                });
+            }
+
+            initializePerformanceMode() {
+                this.updatePerformanceSettings();
+            }
+
+            updatePerformanceSettings() {
+                if (this.performanceMode === 'low') {
+                    this.maxRenderPoints = 1000;
+                    this.updateThrottle = 100;
+                    document.getElementById('resolution').value = Math.min(30, document.getElementById('resolution').value);
+                } else {
+                    this.maxRenderPoints = 5000;
+                    this.updateThrottle = 50;
+                }
+                this.invalidateCache();
+                if (this.hasData) this.scheduleRender();
+            }
+
+            startFPSCounter() {
+                let lastTime = performance.now();
+                let frameCount = 0;
+                
+                const updateFPS = () => {
+                    const now = performance.now();
+                    frameCount++;
+                    
+                    if (now - lastTime >= 1000) {
+                        this.fps = Math.round(frameCount * 1000 / (now - lastTime));
+                        document.getElementById('fpsValue').textContent = this.fps;
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+                    
+                    requestAnimationFrame(updateFPS);
+                };
+                
+                updateFPS();
+            }
+
+            initWebSocket() {
+                const statusEl = document.getElementById('connectionStatus');
+                
+                try {
+                    this.ws = new WebSocket('ws://localhost:8000/ws/training/');
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.reconnectAttempts = 0;
+                        statusEl.innerHTML = '<div class="status-title">Connected</div><div>Receiving neural network data...</div>';
+                        statusEl.className = 'status connected';
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.type === "training_update" && document.getElementById('autoUpdate').checked) {
+                                this.processData(data.data);
+                            }
+                        } catch (error) {
+                            console.error('Error parsing WebSocket data:', error);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                            statusEl.innerHTML = '<div class="loading-spinner"></div><div class="status-title">Reconnecting</div><div>Attempt ' + (this.reconnectAttempts + 1) + '/' + this.maxReconnectAttempts + '</div>';
+                            statusEl.className = 'status waiting';
+                            
+                            setTimeout(() => {
+                                this.reconnectAttempts++;
+                                this.initWebSocket();
+                            }, 2000 * Math.pow(2, this.reconnectAttempts)); // Exponential backoff
+                        } else {
+                            statusEl.innerHTML = '<div class="status-title">Connection Failed</div><div>Unable to connect to neural network</div>';
+                            statusEl.className = 'status error';
+                        }
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    statusEl.innerHTML = '<div class="status-title">Connection Error</div><div>Failed to establish connection</div>';
+                    statusEl.className = 'status error';
+                }
+            }
+
+            // Button functionality for the graph page
+            initializeGraphButtons() {
+                // Train Button
+                const trainBtn = document.getElementById("graphTrainBtn");
+                if (trainBtn) {
+                    trainBtn.addEventListener("click", () => {
+                        // Add loading state
+                        trainBtn.classList.add('loading');
+                        trainBtn.innerHTML = '<span class="graph-btn-spinner"></span>Training...';
+                        trainBtn.disabled = true;
+                        
+                        fetch("/train/")
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log("Training started:", data);
+                                // Reset button state
+                                trainBtn.classList.remove('loading');
+                                trainBtn.classList.add('success');
+                                trainBtn.innerHTML = '<span class="graph-btn-icon">✓</span>Started';
+                                trainBtn.disabled = false;
+                                
+                                // Reset to normal state after 2 seconds
+                                setTimeout(() => {
+                                    trainBtn.classList.remove('success');
+                                    trainBtn.innerHTML = '<span class="graph-btn-icon">🚀</span>Train';
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error("Training error:", err);
+                                // Reset button state and show error
+                                trainBtn.classList.remove('loading');
+                                trainBtn.classList.add('error');
+                                trainBtn.innerHTML = '<span class="graph-btn-icon">✕</span>Error';
+                                trainBtn.disabled = false;
+                                
+                                // Reset error state after 3 seconds
+                                setTimeout(() => {
+                                    trainBtn.classList.remove('error');
+                                    trainBtn.innerHTML = '<span class="graph-btn-icon">🚀</span>Train';
+                                }, 3000);
+                                
+                                alert("Training Error: " + err);
+                            });
+                    });
+                }
+
+                // Home Button
+                const homeBtn = document.getElementById("graphHomeBtn");
+                if (homeBtn) {
+                    homeBtn.addEventListener("click", () => {
+                        // Add loading state
+                        homeBtn.classList.add('loading');
+                        homeBtn.innerHTML = '<span class="graph-btn-spinner"></span>Loading...';
+                        homeBtn.disabled = true;
+                        
+                        // Navigate to home page (adjust the URL as needed)
+                        const homeUrl = "/NN/"; // Change this to your actual home page URL
+                        
+                        // Simulate loading delay for better UX
+                        setTimeout(() => {
+                            window.location.href = homeUrl; // Navigate to home page
+                            
+                            homeBtn.classList.remove('loading');
+                            homeBtn.innerHTML = '<span class="graph-btn-icon">🏠</span>Home';
+                            homeBtn.disabled = false;
+                        }, 500);
+                    });
+                }
+            }
+
+
+            processData(data) {
+                const now = performance.now();
+                if (now - this.lastUpdateTime < this.updateThrottle) {
+                    return; // Throttle updates
+                }
+                this.lastUpdateTime = now;
+
+                if (!this.validateData(data)) return;
+
+                // Sample data if too large for performance
+                const sampleData = this.sampleDataForPerformance(data);
+                
+                this.data = {
+                    x: sampleData.x,
+                    y: sampleData.y,
+                    labels: sampleData.labels,
+                    predicted: sampleData.predicted
+                };
+
+                this.updateMetrics(data);
+                this.updateExtents();
+                this.setupScales();
+                this.invalidateCache();
+                
+                this.hasData = true;
+                this.scheduleRender();
+                this.updateStatus();
+                
+                this.updateCount++;
+                document.getElementById('updateCount').textContent = this.updateCount;
+            }
+
+            validateData(data) {
+                return data.x && data.y && data.labels && data.predicted && 
+                       data.x.length === data.y.length && 
+                       data.y.length === data.labels.length && 
+                       data.labels.length === data.predicted.length;
+            }
+
+            sampleDataForPerformance(data) {
+                if (data.x.length <= this.maxRenderPoints) {
+                    return data;
+                }
+
+                // Stratified sampling to maintain class distribution
+                const indices = [];
+                const class0Indices = [];
+                const class1Indices = [];
+                
+                data.labels.forEach((label, i) => {
+                    if (label === 0) class0Indices.push(i);
+                    else class1Indices.push(i);
+                });
+                
+                const sampleSize = Math.min(this.maxRenderPoints, data.x.length);
+                const class0Sample = Math.floor(sampleSize * class0Indices.length / data.labels.length);
+                const class1Sample = sampleSize - class0Sample;
+                
+                // Random sampling from each class
+                const shuffled0 = class0Indices.sort(() => 0.5 - Math.random());
+                const shuffled1 = class1Indices.sort(() => 0.5 - Math.random());
+                
+                indices.push(...shuffled0.slice(0, class0Sample));
+                indices.push(...shuffled1.slice(0, class1Sample));
+                
+                return {
+                    x: indices.map(i => data.x[i]),
+                    y: indices.map(i => data.y[i]),
+                    labels: indices.map(i => data.labels[i]),
+                    predicted: indices.map(i => data.predicted[i])
+                };
+            }
+
+            updateMetrics(data) {
+                if (data.epoch !== undefined) {
+                    this.currentEpoch = data.epoch;
+                    document.getElementById('currentEpoch').textContent = this.currentEpoch;
+                }
+
+                // Calculate accuracy efficiently
+                let correct = 0;
+                const total = Math.min(data.labels.length, data.predicted.length);
+                for (let i = 0; i < total; i++) {
+                    if (Math.round(data.predicted[i]) === data.labels[i]) correct++;
+                }
+                
+                this.accuracy = total > 0 ? (correct / total * 100).toFixed(1) : 0;
+                document.getElementById('accuracyValue').textContent = this.accuracy + '%';
+                document.getElementById('pointCount').textContent = data.x.length;
+            }
+
+            updateExtents() {
+                if (this.data.x.length === 0) return;
+                
+                const xExtent = d3.extent(this.data.x);
+                const yExtent = d3.extent(this.data.y);
+                
+                const xRange = xExtent[1] - xExtent[0];
+                const yRange = yExtent[1] - yExtent[0];
+                
+                const xPadding = Math.max(xRange * 0.1, 0.5);
+                const yPadding = Math.max(yRange * 0.1, 0.5);
+                
+                this.xExtent = [xExtent[0] - xPadding, xExtent[1] + xPadding];
+                this.yExtent = [yExtent[0] - yPadding, yExtent[1] + yPadding];
+            }
+
+            updateDimensions() {
+                const container = document.querySelector('.panel');
+                const rect = container.getBoundingClientRect();
+                
+                this.width = rect.width - 48; // Account for padding
+                this.height = rect.height - 200; // Account for controls and info
+                
+                this.plotWidth = this.width - this.margin.left - this.margin.right;
+                this.plotHeight = this.height - this.margin.top - this.margin.bottom;
+            }
+
+            setupScales() {
+                this.xScale = d3.scaleLinear()
+                    .domain(this.xExtent)
+                    .range([0, this.plotWidth]);
+                
+                this.yScale = d3.scaleLinear()
+                    .domain(this.yExtent)
+                    .range([this.plotHeight, 0]);
+            }
+
+            setupSVG() {
+                this.svg
+                    .attr('width', this.width)
+                    .attr('height', this.height);
+
+                // Clear and recreate plot group
+                this.svg.selectAll('.plot-group').remove();
+                
+                this.plotGroup = this.svg.append('g')
+                    .attr('class', 'plot-group')
+                    .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
+
+                // Add clipping path
+                this.plotGroup.append('defs')
+                    .append('clipPath')
+                    .attr('id', 'plot-area')
+                    .append('rect')
+                    .attr('width', this.plotWidth)
+                    .attr('height', this.plotHeight);
+            }
+
+            scheduleRender() {
+                if (this.isRendering) return;
+                
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+                
+                this.animationFrame = requestAnimationFrame(() => {
+                    this.render();
+                });
+            }
+
+            render() {
+                if (!this.hasData || this.isRendering) return;
+                
+                const startTime = performance.now();
+                this.isRendering = true;
+
+                try {
+                    // Render in optimal order (background to foreground)
+                    this.renderGrid();
+                    this.renderAxes();
+                    
+                    if (document.getElementById('showContours').checked) {
+                        this.renderDecisionBoundary();
+                    }
+                    
+                    this.renderDataPoints();
+                    
+                    const renderTime = Math.round(performance.now() - startTime);
+                    document.getElementById('renderTime').textContent = renderTime;
+                    
+                } catch (error) {
+                    console.error('Render error:', error);
+                } finally {
+                    this.isRendering = false;
+                }
+            }
+
+            renderGrid() {
+                const xTicks = this.xScale.ticks(8);
+                const yTicks = this.yScale.ticks(8);
+
+                // Remove old grid
+                this.plotGroup.selectAll('.grid-line').remove();
+
+                // Vertical lines
+                this.plotGroup.selectAll('.grid-x')
+                    .data(xTicks)
+                    .join('line')
+                    .attr('class', 'grid-x grid-line')
+                    .attr('x1', d => this.xScale(d))
+                    .attr('x2', d => this.xScale(d))
+                    .attr('y1', 0)
+                    .attr('y2', this.plotHeight);
+
+                // Horizontal lines
+                this.plotGroup.selectAll('.grid-y')
+                    .data(yTicks)
+                    .join('line')
+                    .attr('class', 'grid-y grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', this.plotWidth)
+                    .attr('y1', d => this.yScale(d))
+                    .attr('y2', d => this.yScale(d));
+            }
+
+            renderAxes() {
+                // X Axis
+                this.plotGroup.selectAll('.x-axis').remove();
+                const xAxis = d3.axisBottom(this.xScale).ticks(6).tickFormat(d3.format('.1f'));
+                this.plotGroup.append('g')
+                    .attr('class', 'x-axis axis')
+                    .attr('transform', `translate(0, ${this.plotHeight})`)
+                    .call(xAxis);
+
+                // Y Axis
+                this.plotGroup.selectAll('.y-axis').remove();
+                const yAxis = d3.axisLeft(this.yScale).ticks(6).tickFormat(d3.format('.1f'));
+                this.plotGroup.append('g')
+                    .attr('class', 'y-axis axis')
+                    .call(yAxis);
+            }
+
+            renderDecisionBoundary() {
+                const resolution = parseInt(document.getElementById('resolution').value);
+                
+                // Use cached grid if resolution hasn't changed
+                if (this.cachedGridPoints && this.lastResolution === resolution) {
+                    this.drawCachedBoundary();
+                    return;
+                }
+
+                this.lastResolution = resolution;
+                const gridData = this.generateGridData(resolution);
+                this.cachedGridPoints = gridData;
+                
+                // Clear previous boundary
+                this.plotGroup.selectAll('.contour-cell').remove();
+                this.plotGroup.selectAll('.boundary-point').remove();
+
+                this.drawBoundaryFromGrid(gridData, resolution);
+            }
+
+            generateGridData(resolution) {
+                const xStep = (this.xExtent[1] - this.xExtent[0]) / resolution;
+                const yStep = (this.yExtent[1] - this.yExtent[0]) / resolution;
+                const gridPoints = [];
+
+                for (let i = 0; i < resolution; i++) {
+                    const row = [];
+                    for (let j = 0; j < resolution; j++) {
+                        const x = this.xExtent[0] + i * xStep;
+                        const y = this.yExtent[0] + j * yStep;
+                        const prediction = this.fastPredict(x, y);
+                        row.push({ x, y, prediction });
+                    }
+                    gridPoints.push(row);
+                }
+
+                return { gridPoints, xStep, yStep };
+            }
+
+            drawBoundaryFromGrid(gridData, resolution) {
+                const { gridPoints, xStep, yStep } = gridData;
+                const cellWidth = this.plotWidth / resolution;
+                const cellHeight = this.plotHeight / resolution;
+
+                // Draw background cells with reduced opacity for performance
+                if (this.performanceMode === 'high') {
+                    for (let i = 0; i < resolution; i++) {
+                        for (let j = 0; j < resolution; j++) {
+                            const cell = gridPoints[i][j];
+                            
+                            this.plotGroup.append('rect')
+                                .attr('class', 'contour-cell')
+                                .attr('x', this.xScale(cell.x) - cellWidth/2)
+                                .attr('y', this.yScale(cell.y) - cellHeight/2)
+                                .attr('width', cellWidth)
+                                .attr('height', cellHeight)
+                                .attr('fill', cell.prediction > 0.5 ? '#4ecdc4' : '#ff6b6b')
+                                .attr('opacity', 0.15);
+                        }
+                    }
+                }
+
+                // Draw boundary points
+                this.drawOptimizedBoundary(gridPoints, resolution);
+            }
+
+            drawOptimizedBoundary(gridPoints, resolution) {
+                const boundaryPoints = [];
+                
+                // Efficient boundary detection using marching squares-like algorithm
+                for (let i = 0; i < resolution - 1; i++) {
+                    for (let j = 0; j < resolution - 1; j++) {
+                        const current = gridPoints[i][j];
+                        const right = gridPoints[i + 1][j];
+                        const down = gridPoints[i][j + 1];
+                        const diagonal = gridPoints[i + 1][j + 1];
+                        
+                        // Check for boundary crossing in 2x2 cell
+                        const values = [current.prediction, right.prediction, diagonal.prediction, down.prediction];
+                        const hasClass0 = values.some(v => v <= 0.5);
+                        const hasClass1 = values.some(v => v > 0.5);
+                        
+                        if (hasClass0 && hasClass1) {
+                            // Interpolate boundary position for smoother appearance
+                            const avgX = (current.x + right.x + down.x + diagonal.x) / 4;
+                            const avgY = (current.y + right.y + down.y + diagonal.y) / 4;
+                            boundaryPoints.push([this.xScale(avgX), this.yScale(avgY)]);
+                        }
+                    }
+                }
+
+                // Draw boundary points with clustering for better performance
+                if (boundaryPoints.length > 0) {
+                    const clusteredPoints = this.clusterBoundaryPoints(boundaryPoints);
+                    
+                    this.plotGroup.selectAll('.boundary-point')
+                        .data(clusteredPoints)
+                        .join('circle')
+                        .attr('class', 'boundary-point')
+                        .attr('cx', d => d[0])
+                        .attr('cy', d => d[1])
+                        .attr('r', 1.5)
+                        .attr('fill', '#ffffff')
+                        .attr('opacity', 0.9);
+                }
+            }
+
+            clusterBoundaryPoints(points, threshold = 5) {
+                if (points.length < 100) return points;
+                
+                const clustered = [];
+                const visited = new Set();
+                
+                for (let i = 0; i < points.length; i++) {
+                    if (visited.has(i)) continue;
+                    
+                    const cluster = [points[i]];
+                    visited.add(i);
+                    
+                    for (let j = i + 1; j < points.length; j++) {
+                        if (visited.has(j)) continue;
+                        
+                        const dist = Math.sqrt(
+                            Math.pow(points[i][0] - points[j][0], 2) + 
+                            Math.pow(points[i][1] - points[j][1], 2)
+                        );
+                        
+                        if (dist < threshold) {
+                            cluster.push(points[j]);
+                            visited.add(j);
+                        }
+                    }
+                    
+                    // Use cluster centroid
+                    const centroidX = cluster.reduce((sum, p) => sum + p[0], 0) / cluster.length;
+                    const centroidY = cluster.reduce((sum, p) => sum + p[1], 0) / cluster.length;
+                    clustered.push([centroidX, centroidY]);
+                }
+                
+                return clustered;
+            }
+
+            drawCachedBoundary() {
+                if (!this.cachedGridPoints) return;
+                this.drawBoundaryFromGrid(this.cachedGridPoints, this.lastResolution);
+            }
+
+            fastPredict(x, y) {
+                if (this.data.x.length === 0) return 0.5;
+                
+                // Use spatial indexing for faster nearest neighbor search
+                let minDist = Infinity;
+                let prediction = 0.5;
+                let weightSum = 0;
+                let weightedSum = 0;
+                
+                // Use k-nearest neighbors with inverse distance weighting
+                const k = Math.min(5, this.data.x.length);
+                const neighbors = [];
+                
+                for (let i = 0; i < this.data.x.length; i++) {
+                    const dx = this.data.x[i] - x;
+                    const dy = this.data.y[i] - y;
+                    const dist = dx * dx + dy * dy; // Skip sqrt for performance
+                    
+                    neighbors.push({ dist, prediction: this.data.predicted[i] });
+                }
+                
+                // Sort and take k nearest
+                neighbors.sort((a, b) => a.dist - b.dist);
+                
+                for (let i = 0; i < k; i++) {
+                    const weight = 1 / (neighbors[i].dist + 1e-6); // Avoid division by zero
+                    weightedSum += neighbors[i].prediction * weight;
+                    weightSum += weight;
+                }
+                
+                return weightSum > 0 ? weightedSum / weightSum : 0.5;
+            }
+
+            renderDataPoints() {
+                // Create efficient data structure for points
+                const points = this.data.x.map((x, i) => ({
+                    x: this.xScale(x),
+                    y: this.yScale(this.data.y[i]),
+                    label: this.data.labels[i],
+                    predicted: this.data.predicted[i],
+                    isCorrect: Math.round(this.data.predicted[i]) === this.data.labels[i]
+                }));
+
+                // Use D3's efficient data binding with keys for better performance
+                this.plotGroup.selectAll('.data-point')
+                    .data(points, (d, i) => i)
+                    .join(
+                        enter => enter.append('circle')
+                            .attr('class', d => `data-point class-${d.label}`)
+                            .attr('cx', d => d.x)
+                            .attr('cy', d => d.y)
+                            .attr('r', 0)
+                            .style('stroke-width', d => d.isCorrect ? 1.5 : 2.5)
+                            .style('stroke', d => d.isCorrect ? 'rgba(255, 255, 255, 0.9)' : '#ff0000')
+                            .attr('clip-path', 'url(#plot-area)')
+                            .call(enter => enter.transition().duration(300).attr('r', 4)),
+                        
+                        update => update
+                            .attr('cx', d => d.x)
+                            .attr('cy', d => d.y)
+                            .style('stroke-width', d => d.isCorrect ? 1.5 : 2.5)
+                            .style('stroke', d => d.isCorrect ? 'rgba(255, 255, 255, 0.9)' : '#ff0000'),
+                        
+                        exit => exit.transition().duration(200).attr('r', 0).remove()
+                    );
+            }
+
+            invalidateCache() {
+                this.cachedGridPoints = null;
+                this.cachedBoundary = null;
+            }
+
+            onSettingsChange() {
+                this.invalidateCache();
+                if (this.hasData) this.scheduleRender();
+            }
+
+            updateStatus() {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.innerHTML = `
+                    <div class="status-title">Live Training</div>
+                    <div>Points: ${this.data.x.length} | Epoch: ${this.currentEpoch} | Accuracy: ${this.accuracy}%</div>
+                `;
+                statusEl.className = 'status connected';
+            }
+
+            handleResize() {
+                this.updateDimensions();
+                this.setupScales();
+                this.setupSVG();
+                this.invalidateCache();
+                if (this.hasData) this.scheduleRender();
+            }
+
+            // Public methods for external control
+            pause() {
+                document.getElementById('autoUpdate').checked = false;
+                this.autoUpdate = false;
+            }
+
+            resume() {
+                document.getElementById('autoUpdate').checked = true;
+                this.autoUpdate = true;
+            }
+
+            resetVisualization() {
+                this.data = { x: [], y: [], labels: [], predicted: [] };
+                this.hasData = false;
+                this.currentEpoch = 0;
+                this.accuracy = 0;
+                this.updateCount = 0;
+                
+                document.getElementById('currentEpoch').textContent = '-';
+                document.getElementById('accuracyValue').textContent = '-';
+                document.getElementById('pointCount').textContent = '0';
+                document.getElementById('updateCount').textContent = '0';
+                
+                this.plotGroup.selectAll('*').remove();
+                this.invalidateCache();
+            }
+
+            exportVisualization() {
+                const svgElement = this.svg.node();
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                
+                const downloadLink = document.createElement('a');
+                downloadLink.href = svgUrl;
+                downloadLink.download = `neural_network_epoch_${this.currentEpoch}.svg`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(svgUrl);
+            }
+
+            // Cleanup method
+            destroy() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+                this.svg.selectAll('*').remove();
+            }
+        }
+
+        // Initialize visualization with error handling
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                window.neuralViz = new OptimizedNeuralViz();
+                
+                // Add keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch(e.key) {
+                            case 'p':
+                                e.preventDefault();
+                                window.neuralViz.pause();
+                                break;
+                            case 'r':
+                                e.preventDefault();
+                                window.neuralViz.resume();
+                                break;
+                            case 's':
+                                e.preventDefault();
+                                window.neuralViz.exportVisualization();
+                                break;
+                        }
+                    }
+                });
+                
+                // Add cleanup on page unload
+                window.addEventListener('beforeunload', () => {
+                    if (window.neuralViz) {
+                        window.neuralViz.destroy();
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to initialize neural network visualization:', error);
+                document.getElementById('connectionStatus').innerHTML = 
+                    '<div class="status-title">Initialization Error</div><div>Failed to start visualization</div>';
+                document.getElementById('connectionStatus').className = 'status error';
+            }
+        });
+
+        // Performance monitoring
+        if ('performance' in window && 'mark' in performance) {
+            performance.mark('neural-viz-init-start');
+        }
+    </script>
+</body>
+</html>
