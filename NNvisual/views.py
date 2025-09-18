@@ -5,13 +5,13 @@ import threading
 
 
 def home(request):
-    return render(request, 'Main.html')
+    return render(request, 'NNvisual/Main.html')
 
 def blog(request):
-    return render(request,"blog.html")
+    return render(request,"NNvisual/blog.html")
 
 def graphs(request):
-    return render(request, 'graphs.html')
+    return render(request, 'NNvisual/graphs.html')
 
 def train(request):
     def run_training():
