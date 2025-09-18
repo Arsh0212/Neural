@@ -1,10 +1,10 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import NeuralNetwork
 from asgiref.sync import sync_to_async
 import json
 
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        from .models import NeuralNetwork
         channel_name = "neural_network_updates"
         await self.channel_layer.group_add(channel_name, self.channel_name)
         await self.accept()
