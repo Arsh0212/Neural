@@ -1,12 +1,9 @@
+from NNvisual.training import build_model, get_dataset
 from django.core.management.base import BaseCommand
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-import os, warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # suppress INFO & WARNING logs
-warnings.filterwarnings("ignore")  # suppress Python warnings
 import tensorflow as tf
 import numpy as np
-from NNvisual.training import build_model, get_dataset
 import time
 from NNvisual.models import NeuralNetwork
 import threading
@@ -80,8 +77,9 @@ class Command(BaseCommand):
         feature_test_tf = tf.constant(feature_test, dtype=tf.float32)
         label_test_tf = tf.constant(label_test, dtype=tf.float32)
         train_first_tf = tf.constant(train_first, dtype=tf.float32)
-
+        start = time.time()
         model = build_model()
+        print("Model Built in:",time.time()-start)
 
         # Setup WebSocket handling
         self.channel_layer = get_channel_layer()
@@ -93,11 +91,10 @@ class Command(BaseCommand):
             return model(x, training=False)
 
         class OptimizedWSLogger(tf.keras.callbacks.Callback):
-            def __init__(self, parent_command, train_sample, update_frequency=1, update_epoch_count=0):
+            def __init__(self, parent_command, train_sample,  update_epoch_count=0):
                 super().__init__()
                 self.parent = parent_command
                 self.train_sample = train_sample
-                self.update_frequency = update_frequency
                 self.update_epoch_count = update_epoch_count
                 self.activation_functions = {
                     'relu': lambda x: tf.nn.relu(x),
@@ -216,7 +213,7 @@ class Command(BaseCommand):
             NN_info = NeuralNetwork.objects.get(id=1)
             
             # Create optimized callback
-            ws_logger = OptimizedWSLogger(self, train_first_tf, update_frequency=5)
+            ws_logger = OptimizedWSLogger(self, train_first_tf,)
             
             # Use tf.data for better performance
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
@@ -237,7 +234,6 @@ class Command(BaseCommand):
                 if epoch%2==0:
                     predictions = fast_predict(feature_train_tf).numpy()
                     send_training_update(feature_train, label_train, predictions, epoch)
-            time.sleep(5)
         except Exception as e:
             print(f"Training error: {e}")
         finally:
