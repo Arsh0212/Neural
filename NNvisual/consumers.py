@@ -8,7 +8,16 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         channel_name = "neural_network_updates"
         await self.channel_layer.group_add(channel_name, self.channel_name)
         await self.accept()
-
+        NeuralNetwork.objects.get_or_create(
+            id=1,  # or any unique field to check existence
+            defaults={
+                'epoch': 100,
+                'batch_size': 30,
+                'learning_rate': 0.01,
+                'activation_function':'tanh',
+                'dataset':1
+            }
+        )
         nn = await sync_to_async(NeuralNetwork.objects.get)(id=1)
         await self.send(text_data=json.dumps({
             "type": "config",
