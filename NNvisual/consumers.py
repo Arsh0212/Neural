@@ -8,7 +8,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         channel_name = "neural_network_updates"
         await self.channel_layer.group_add(channel_name, self.channel_name)
         await self.accept()
-        nn = await sync_to_async(NeuralNetwork.objects.get_or_create)(
+        nn, created = await sync_to_async(NeuralNetwork.objects.get_or_create)(
             id=1,  # or any unique field to check existence
             defaults={
                 'epoch': 100,
