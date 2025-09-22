@@ -8,10 +8,10 @@ def home(request):
     return render(request, 'NNvisual/Main.html')
 
 def blog(request):
-    return render(request,"NNvisual/blog.html")
+    return render(request,"NNvisual/Blog.html")
 
 def graphs(request):
-    return render(request, 'NNvisual/graphs.html')
+    return render(request, 'NNvisual/Graphs.html')
 
 def train(request):
     def run_training():
