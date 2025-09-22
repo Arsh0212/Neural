@@ -34,7 +34,7 @@ class Command(BaseCommand):
         def websocket_worker():
             while not self.stop_event.is_set():
                 try:
-                    message = self.websocket_queue.get(timeout=1)
+                    message = self.websocket_queue.get(timeout=0.1)
                     if message is None:  # Shutdown signal
                         break
                     async_to_sync(self.channel_layer.group_send)(
