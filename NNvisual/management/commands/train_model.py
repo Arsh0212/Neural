@@ -165,11 +165,8 @@ class Command(BaseCommand):
                                 "weights": weights_list,
                                 "biases": biases_list,
                                 "activated_nodes": [arr.numpy().tolist() for arr in activated_nodes],
-                                "node_values": [arr.numpy().tolist() for arr in node_values],
                                 "loss": float(logs.get("loss", 0)),
                                 "accuracy": float(logs.get("accuracy", 0)),
-                                "val_loss": float(logs.get("val_loss", 0)),
-                                "val_accuracy": float(logs.get("val_accuracy", 0))
                             }
                         }
                         
@@ -232,7 +229,7 @@ class Command(BaseCommand):
                     verbose=0,
                     callbacks=[ws_logger]
                 )
-                if epoch%1==0:
+                if epoch%2==0:
                     predictions = fast_predict(feature_train_tf).numpy()
                     send_training_update(feature_test, label_test, predictions, epoch)
         except Exception as e:
