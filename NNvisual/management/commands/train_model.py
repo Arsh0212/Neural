@@ -224,16 +224,17 @@ class Command(BaseCommand):
 
             for epoch in range(NN_info.epoch):
                 # Train for one epoch
+                print(epoch)
                 model.fit(
                     train_dataset,
                     epochs=1,
                     # validation_data=val_dataset,
-                    verbose=1 if epoch%20==0 else 0,
+                    verbose=0,
                     callbacks=[ws_logger]
                 )
-                if epoch%2==0:
+                if epoch%1==0:
                     predictions = fast_predict(feature_train_tf).numpy()
-                    send_training_update(feature_train, label_train, predictions, epoch)
+                    send_training_update(feature_test, label_test, predictions, epoch)
         except Exception as e:
             print(f"Training error: {e}")
         finally:
