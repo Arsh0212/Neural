@@ -61,6 +61,16 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
 
         # Get dataset once
+        NeuralNetwork.objects.get_or_create(
+            id=1,  # or any unique field to check existence
+            defaults={
+                'epoch': 100,
+                'batch_size': 30,
+                'learning_rate': 0.01,
+                'activation_function':'tanh',
+                'dataset':1
+            }
+        )
         feature_train, label_train, feature_test, label_test, train_first, name = get_dataset()
         print("Model Name:",name)
         
