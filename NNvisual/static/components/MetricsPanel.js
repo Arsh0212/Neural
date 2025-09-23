@@ -29,7 +29,7 @@ class MetricsPanel {
     initWebSocket() {
         const loc = window.location;
         let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
-        let endpoint = wsStart + loc.host + "/ws/training/";
+        let endpoint = wsStart + loc.host + "/ws/training/metrics";
         this.webSocket = new WebSocket(endpoint)
 
         this.webSocket.onopen = () => {
