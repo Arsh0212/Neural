@@ -37,8 +37,9 @@ class Command(BaseCommand):
                     message = self.websocket_queue.get(timeout=0.1)
                     if message is None:  # Shutdown signal
                         break
+                    group_name = message.get("group_name")
                     async_to_sync(self.channel_layer.group_send)(
-                        "neural_network_updates", message
+                        group_name, message
                     )
                     self.websocket_queue.task_done()
                 except:
@@ -52,7 +53,6 @@ class Command(BaseCommand):
         try:
             self.websocket_queue.put_nowait(message)
         except:
-            # Queue full, skip this update
             pass
 
     def handle(self, *args, **kwargs):
@@ -160,6 +160,7 @@ class Command(BaseCommand):
                         # Prepare message
                         message = {
                             "type": "send_epoch_update",
+                            "group_name": "ws_train_main",
                             "data": {
                                 "epoch": self.update_epoch_count,
                                 "weights": weights_list,
@@ -192,6 +193,7 @@ class Command(BaseCommand):
 
                 message = {
                     "type": "training_update",
+                    "group_name": "ws_train_graph",
                     "data": {
                         "epoch": epoch + 1,
                         "predicted": pred_sample[:, 0].tolist() if pred_sample.shape[1] > 0 else pred_sample.tolist(),
@@ -225,13 +227,12 @@ class Command(BaseCommand):
                 model.fit(
                     train_dataset,
                     epochs=1,
-                    # validation_data=val_dataset,
                     verbose=0,
                     callbacks=[ws_logger]
                 )
-                # if epoch%2==0:
-                #     predictions = fast_predict(feature_train_tf).numpy()
-                #     send_training_update(feature_test, label_test, predictions, epoch)
+                if epoch%2==0:
+                    predictions = fast_predict(feature_train_tf).numpy()
+                    send_training_update(feature_test, label_test, predictions, epoch)
         except Exception as e:
             print(f"Training error: {e}")
         finally:
