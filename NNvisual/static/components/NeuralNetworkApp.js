@@ -109,6 +109,7 @@ class NeuralNetworkApp {
             },
             onMessage: (data) => {
                 if (data.type === 'send_epoch_update'){
+                console.log("Epoch Updates Received")
                 this.handleUpdate(data.data);
                 }
             },
