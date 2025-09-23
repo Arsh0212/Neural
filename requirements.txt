@@ -1,23 +1,12 @@
-# Core Django - Use specific versions for faster installs
+numpy==1.23.5
+scikit-learn==1.2.2
+tensorflow-cpu==2.11.0
 Django==5.2.6
 daphne==4.1.2
 channels==4.0.0
 channels-redis==4.2.0
-# Database & Cache
-dj-database-url==2.1.0
 redis==5.0.1
-# Static files with Brotli compression
+dj-database-url==2.1.0
+psycopg2-binary==2.9.9
 whitenoise[brotli]==6.6.0
-# CRITICAL: Use TensorFlow CPU-only lite version
-scikit-learn==1.2.2
-tensorflow-cpu==2.11.0
-# Essential ML packages only
-# numpy==1.23.5
-# Production server
 gunicorn==21.2.0
-# Database adapter (choose one based on your DB)
-psycopg2-binary==2.9.9  # For PostgreSQL
-
-
-
-
