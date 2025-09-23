@@ -46,9 +46,10 @@ class MetricsPanel {
             try {
                 // FIXED: Parse JSON only once and use proper logic
                 const data = JSON.parse(event.data);
-                
+                console.log("Random data received")
                 // Handle config updates
                 if (data.type === "config" && data.config) {
+                    console.log("config data received")
                     this.updateFromBackend(data.config);
                     return;
                 }
