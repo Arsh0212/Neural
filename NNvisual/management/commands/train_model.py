@@ -229,9 +229,9 @@ class Command(BaseCommand):
                     verbose=0,
                     callbacks=[ws_logger]
                 )
-                if epoch%2==0:
-                    predictions = fast_predict(feature_train_tf).numpy()
-                    send_training_update(feature_test, label_test, predictions, epoch)
+                # if epoch%2==0:
+                #     predictions = fast_predict(feature_train_tf).numpy()
+                #     send_training_update(feature_test, label_test, predictions, epoch)
         except Exception as e:
             print(f"Training error: {e}")
         finally:
