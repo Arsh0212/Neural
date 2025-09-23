@@ -1,41 +1,18 @@
-# Install build tools first
-setuptools>=69.0.0
-wheel>=0.42.0
-build>=1.0.0
-
 # Core Django - Use specific versions for faster installs
 Django==5.2.6
 daphne==4.1.2
 channels==4.0.0
 channels-redis==4.2.0
-
 # Database & Cache
 dj-database-url==2.1.0
 redis==5.0.1
-
 # Static files with Brotli compression
 whitenoise[brotli]==6.6.0
-
 # CRITICAL: Use TensorFlow CPU-only lite version
-# Note: For Python 3.13, may need to use latest version
-tensorflow-cpu>=2.20.0
-
-# Alternative if TensorFlow still has issues:
-# tensorflow-lite>=2.16.0
-
+tensorflow-cpu==2.20.0
 # Essential ML packages only
-numpy>=1.24.4,<2.0.0
-
-# Async support
-asgiref==3.7.2
-
+numpy==1.24.4
 # Production server
 gunicorn==21.2.0
-
 # Database adapter (choose one based on your DB)
 psycopg2-binary==2.9.9  # For PostgreSQL
-# OR
-# mysqlclient==2.2.4  # For MySQL
-
-# Optional: Additional build dependencies for problematic packages
-Cython>=3.0.0
