@@ -5,8 +5,16 @@ import json
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         from .models import NeuralNetwork
-        channel_name = "neural_network_updates"
-        await self.channel_layer.group_add(channel_name, self.channel_name)
+        if "main" in self.scope["path"]:
+            self.group_name = "ws_train_main"
+        elif "metrics" in self.scope["path"]:
+            self.group_name = "ws_train_metrics"
+        elif "graph" in self.scope["path"]:
+            self.group_name = "ws_train_graph"
+        else:
+            self.group_name = "ws_train_default"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        print(self.group_name)
         await self.accept()
         nn, created = await sync_to_async(NeuralNetwork.objects.get_or_create)(
             id=1,  # or any unique field to check existence
@@ -31,7 +39,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         channel_name = "neural_network_updates"
-        await self.channel_layer.group_discard(channel_name, self.channel_name)
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
