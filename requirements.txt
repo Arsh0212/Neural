@@ -12,7 +12,7 @@ redis==5.0.1
 whitenoise[brotli]==6.6.0
 
 # CRITICAL: Use TensorFlow CPU-only lite version
-tensorflow-cpu==2.15.0
+tensorflow-cpu==2.20.0
 # Alternative lightweight option (uncomment if TF still too big):
 # tf-nightly-cpu==2.16.0.dev20240101  # Smaller nightly build
 
@@ -35,3 +35,4 @@ psycopg2-binary==2.9.9  # For PostgreSQL
 
 # Memory profiling (remove in production)
 # psutil==5.9.6
+
