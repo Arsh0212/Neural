@@ -109,10 +109,6 @@ DATABASES = {
         default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,  # Connection pooling for 10 minutes
         conn_health_checks=True,
-        options={
-            'MAX_CONNS': 5,  # Limit connections for free tier
-            'MIN_CONNS': 1,
-        }
     )
 }
 
