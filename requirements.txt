@@ -1,3 +1,8 @@
+# Install build tools first
+setuptools>=69.0.0
+wheel>=0.42.0
+build>=1.0.0
+
 # Core Django - Use specific versions for faster installs
 Django==5.2.6
 daphne==4.1.2
@@ -12,12 +17,14 @@ redis==5.0.1
 whitenoise[brotli]==6.6.0
 
 # CRITICAL: Use TensorFlow CPU-only lite version
-tensorflow-cpu==2.20.0
-# Alternative lightweight option (uncomment if TF still too big):
-# tf-nightly-cpu==2.16.0.dev20240101  # Smaller nightly build
+# Note: For Python 3.13, may need to use latest version
+tensorflow-cpu>=2.20.0
+
+# Alternative if TensorFlow still has issues:
+# tensorflow-lite>=2.16.0
 
 # Essential ML packages only
-numpy==1.24.4
+numpy>=1.24.4,<2.0.0
 
 # Async support
 asgiref==3.7.2
@@ -30,9 +37,5 @@ psycopg2-binary==2.9.9  # For PostgreSQL
 # OR
 # mysqlclient==2.2.4  # For MySQL
 
-# Optional: Reduce package sizes further
-# --no-cache-dir flag in build
-
-# Memory profiling (remove in production)
-# psutil==5.9.6
-
+# Optional: Additional build dependencies for problematic packages
+Cython>=3.0.0
