@@ -11,8 +11,9 @@ whitenoise[brotli]==6.6.0
 # CRITICAL: Use TensorFlow CPU-only lite version
 tensorflow-cpu==2.20.0
 # Essential ML packages only
-numpy==1.24.4
+# numpy==1.24.4
 # Production server
 gunicorn==21.2.0
 # Database adapter (choose one based on your DB)
 psycopg2-binary==2.9.9  # For PostgreSQL
+
