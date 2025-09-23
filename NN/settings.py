@@ -78,19 +78,9 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379")],
-            # Optimize Redis connection for free tier
-            "connection_kwargs": {
-                "retry_on_timeout": True,
-                "health_check_interval": 30,
-                "socket_connect_timeout": 5,
-                "socket_keepalive": True,
-                "socket_keepalive_options": {},
-            },
-            # Reduce memory usage
+            # Reduce memory usage for free tier
             "capacity": 100,  # Reduce from default 300
             "expiry": 10,     # Reduce from default 60 seconds
-            # Add compression for large messages
-            "symmetric_encryption_keys": [SECRET_KEY[:32]],
         },
     },
 }
