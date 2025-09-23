@@ -181,7 +181,7 @@
                 const statusEl = document.getElementById('connectionStatus');
                 
                 try {
-                    this.ws = new WebSocket('ws://localhost:8000/ws/training/');
+                    this.ws = new WebSocket('ws://localhost:8000/ws/training/graph/');
                     
                     this.ws.onopen = () => {
                         this.reconnectAttempts = 0;
