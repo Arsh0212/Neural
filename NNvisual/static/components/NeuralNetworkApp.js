@@ -102,7 +102,7 @@ class NeuralNetworkApp {
         // Setup WebSocket
         const loc = window.location;
         let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
-        let endpoint = wsStart + loc.host + "/ws/training/";
+        let endpoint = wsStart + loc.host + "/ws/training/main/";
         this.wsManager = new WebSocketManager(endpoint, {
             onOpen: () => {
                 this.metricsPanel.updateStatus(true);
