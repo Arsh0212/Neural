@@ -142,6 +142,7 @@ class Command(BaseCommand):
 
             @tf.function
             def compute_layer_outputs(self, input_data):
+                compute_start = time.time()
                 """Efficiently compute all layer outputs in one forward pass"""
                 outputs = []
                 activations = []
@@ -163,26 +164,13 @@ class Command(BaseCommand):
                     else:
                         outputs.append(x)
                         activations.append(x)
-                        
+                print("Computation Time:",time.time()-compute_start)     
                 return outputs, activations
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
+                    epoch_time = time.time()
                     self.update_epoch_count += 1
-                    
-                    # # Send lightweight updates more frequently
-                    # lightweight_message = {
-                    #     "type": "send_lightweight_update",
-                    #     "group_name": "ws_train_main",
-                    #     "data": {
-                    #         "epoch": self.update_epoch_count,
-                    #         "loss": float(logs.get("loss", 0)),
-                    #         "accuracy": float(logs.get("accuracy", 0)),
-                    #     }
-                    # }
-                    # self.parent.queue_websocket_message(lightweight_message)
-                    
-                    # Send detailed updates less frequently (every 5 epochs)
                     if self.update_epoch_count % 5 == 0:
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
@@ -221,7 +209,7 @@ class Command(BaseCommand):
                         
                         # Queue message for async sending
                         self.parent.queue_websocket_message(detailed_message)
-                        
+                    print("Epoch end time:",time.time()-epoch_time)
                 except Exception as e:
                     print(f"Error in WSLogger: {e}")
 
@@ -280,10 +268,8 @@ class Command(BaseCommand):
                 print("Model required:",time.time()-start_model)
                 # Send graph updates even less frequently (every 10 epochs)
                 if epoch % 1 == 0:
-                    start_epoch = time.time()
                     predictions = fast_predict(feature_train_tf).numpy()
                     send_training_update(feature_train, label_train, predictions, epoch)
-                    print("Epoch updation took",time.time()-start_epoch)
             
         except Exception as e:
             print(f"Training error: {e}")
