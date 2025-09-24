@@ -1,0 +1,5 @@
+NN/settings1.py
+temp
+# Ignore Python cache files
+__pycache__/
+*.pyc

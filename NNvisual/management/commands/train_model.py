@@ -90,7 +90,8 @@ class Command(BaseCommand):
         
         # Rate limiting
         if current_time - self.last_update_time < self.min_update_interval:
-            return  # Skip this update
+            return  
+        # Skip this update
             
         try:
             # Non-blocking put - if queue is full, drop the message
@@ -101,7 +102,7 @@ class Command(BaseCommand):
             pass
 
     def handle(self, *args, **kwargs):
-        
+        print("Train Command called")
         # Get dataset once
         feature_train, label_train, feature_test, label_test, train_first, name = get_dataset()
         
@@ -169,7 +170,6 @@ class Command(BaseCommand):
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
-                    epoch_time = time.time()
                     self.update_epoch_count += 1
                     if self.update_epoch_count % 5 == 0:
                         # Efficiently compute layer information
@@ -209,7 +209,6 @@ class Command(BaseCommand):
                         
                         # Queue message for async sending
                         self.parent.queue_websocket_message(detailed_message)
-                    print("Epoch end time:",time.time()-epoch_time)
                 except Exception as e:
                     print(f"Error in WSLogger: {e}")
 
