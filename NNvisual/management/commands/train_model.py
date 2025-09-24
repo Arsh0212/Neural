@@ -34,7 +34,7 @@ class Command(BaseCommand):
         self.websocket_thread = None
         self.stop_event = threading.Event()
         self.last_update_time = 0
-        self.min_update_interval = 0.5  # Minimum 500ms between updates
+        self.min_update_interval = 0.1  # Minimum 500ms between updates
 
     def setup_websocket_handler(self):
         """Setup async websocket message handler in separate thread"""
