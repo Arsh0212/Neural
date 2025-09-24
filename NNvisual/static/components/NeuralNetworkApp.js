@@ -5,6 +5,16 @@ class NeuralNetworkApp {
         this.width = 0;
         this.height = 0;
         
+        // Performance optimization flags
+        this.isUpdating = false;
+        this.pendingUpdates = [];
+        this.lastUpdateTime = 0;
+        this.updateInterval = 100; // Minimum 100ms between renders
+        
+        // Component state tracking
+        this.lastRenderState = null;
+        this.matrixUpdateNeeded = true;
+        
         // Initialize components
         this.layout = new NetworkLayout();
         this.metricsPanel = new MetricsPanel();
@@ -31,7 +41,7 @@ class NeuralNetworkApp {
                         <svg id="network-svg"></svg>
                     </div>
                     
-                    <div class="matrix-panel" id="matrixPanel">
+                    <div class="matrix-panel" id="matrixPanel" style="display: none;">
                         <div class="matrix-section">
                             <div class="matrix-title">Node Activations</div>
                             <div id="activationsMatrix"></div>
@@ -45,7 +55,7 @@ class NeuralNetworkApp {
                 </div>
             </div>
         `;
-        this.metricsPanel.bindElements(); // <-- Add this line
+        this.metricsPanel.bindElements();
     }
 
     setupComponents() {
@@ -65,7 +75,12 @@ class NeuralNetworkApp {
     }
 
     setupEventListeners() {
-        window.addEventListener('resize', () => this.handleResize());
+        // Debounced resize handler
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => this.handleResize(), 250);
+        });
         
         // Make this instance globally accessible for toggle function
         window.neuralApp = this;
@@ -74,111 +89,255 @@ class NeuralNetworkApp {
     updateDimensions() {
         const panel = document.querySelector('.visualization-panel');
         if (panel) {
-            this.width = panel.clientWidth;
-            this.height = panel.clientHeight;
+            const newWidth = panel.clientWidth;
+            const newHeight = panel.clientHeight;
+            
+            // Only update if dimensions actually changed
+            if (newWidth !== this.width || newHeight !== this.height) {
+                this.width = newWidth;
+                this.height = newHeight;
+                return true;
+            }
         }
+        return false;
     }
 
     handleResize() {
-        this.updateDimensions();
-        this.renderer.setViewBox(this.width, this.height);
-        this.layout.calculateLayout(this.width, this.height);
-        this.renderer.render(this.layout);
+        if (this.updateDimensions()) {
+            this.renderer.setViewBox(this.width, this.height);
+            this.layout.calculateLayout(this.width, this.height);
+            this.scheduleRender();
+        }
     }
 
     toggleMatrixPanel() {
         const panel = document.getElementById('matrixPanel');
         if (panel) {
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            const isHidden = panel.style.display === 'none';
+            panel.style.display = isHidden ? 'block' : 'none';
+            
+            // Only update matrix if becoming visible
+            if (isHidden && this.matrixUpdateNeeded) {
+                this.updateMatrixTables();
+                this.matrixUpdateNeeded = false;
+            }
         }
     }
 
     initWebSocket() {
-        // Initialize with demo data
-        this.layout.layers.forEach((layer, i) => {
-            this.layout.updateActivations(i, layer.activations);
-        });
-        
-        // Setup WebSocket
-        const loc = window.location;
-        let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
-        let endpoint = wsStart + loc.host + "/ws/training/main/";
-        this.wsManager = new WebSocketManager(endpoint, {
+        // Setup WebSocket with optimized message handling
+        this.wsManager = new WebSocketManager('ws://localhost:8000/ws/training/main', {
             onOpen: () => {
+                console.log('WebSocket connected');
                 this.metricsPanel.updateStatus(true);
             },
             onMessage: (data) => {
-                if (data.type === 'send_epoch_update'){
-                console.log("Epoch Updates Received")
-                this.handleUpdate(data.data);
-                }
+                this.queueUpdate(data);
             },
             onClose: () => {
+                console.log('WebSocket disconnected');
                 this.metricsPanel.updateStatus(false);
             },
-            onError: () => {
+            onError: (error) => {
+                console.error('WebSocket error:', error);
                 this.startDemo();
             }
         });
+
         // Give MetricsPanel a way to send messages
         this.metricsPanel.setSendHandler((msg) => {
             this.wsManager.send(JSON.stringify(msg));
-            });
+        });
 
         this.wsManager.connect();
     }
 
-    
+    queueUpdate(data) {
+        // Add update to queue
+        this.pendingUpdates.push({
+            timestamp: Date.now(),
+            data: data
+        });
+
+        // Keep queue size manageable
+        if (this.pendingUpdates.length > 10) {
+            this.pendingUpdates = this.pendingUpdates.slice(-5);
+        }
+
+        // Process updates with throttling
+        this.scheduleUpdate();
+    }
+
+    scheduleUpdate() {
+        if (this.isUpdating) {
+            return; // Already processing
+        }
+
+        const now = Date.now();
+        const timeSinceLastUpdate = now - this.lastUpdateTime;
+
+        if (timeSinceLastUpdate < this.updateInterval) {
+            // Schedule for later
+            setTimeout(() => this.scheduleUpdate(), this.updateInterval - timeSinceLastUpdate);
+            return;
+        }
+
+        this.processUpdates();
+    }
+
+    processUpdates() {
+        if (this.isUpdating || this.pendingUpdates.length === 0) {
+            return;
+        }
+
+        this.isUpdating = true;
+
+        // Get the latest update of each type
+        const latestUpdates = {};
+        this.pendingUpdates.forEach(update => {
+            const updateType = update.data.type || 'default';
+            if (!latestUpdates[updateType] || update.timestamp > latestUpdates[updateType].timestamp) {
+                latestUpdates[updateType] = update;
+            }
+        });
+
+        // Process the latest updates
+        Object.values(latestUpdates).forEach(update => {
+            if (update.data.type === 'send_epoch_update') {
+                this.handleUpdate(update.data.data);
+            }
+        });
+
+        // Clear the queue
+        this.pendingUpdates = [];
+        this.lastUpdateTime = Date.now();
+        this.isUpdating = false;
+    }
 
     handleUpdate(data) {
-        const { epoch, weights, activated_nodes, loss } = data;
+        console.log("Processing epoch update:", data.epoch);
         
-        this.metricsPanel.updateEpoch(epoch || 0);
-        this.metricsPanel.updateLoss(loss);
+        let needsRender = false;
+
+        // Update metrics (lightweight)
+        if (data.epoch !== undefined) {
+            this.metricsPanel.updateEpoch(data.epoch);
+        }
         
-        if (activated_nodes && activated_nodes.length > 0) {
-            activated_nodes.forEach((layerNodes, index) => {
+        if (data.loss !== undefined) {
+            this.metricsPanel.updateLoss(data.loss);
+        }
+
+        // Handle activation nodes update
+        if (data.activated_nodes && data.activated_nodes.length > 0) {
+            data.activated_nodes.forEach((layerNodes, index) => {
                 const activations = Array.isArray(layerNodes) ? 
-                    layerNodes.map(val => Array.isArray(val) ? val : val) : 
-                    layerNodes;
-                this.layout.updateActivations(index, activations);
+                    layerNodes.map(val => Array.isArray(val) ? val[0] || val : val) : 
+                    [layerNodes];
+                
+                if (this.layout.updateActivations(index, activations)) {
+                    needsRender = true;
+                }
             });
         }
         
-        if (weights && weights.length > 0) {
-            this.layout.updateWeights(weights);
+        // Handle weights update
+        if (data.weights && data.weights.length > 0) {
+            if (this.layout.updateWeights(data.weights)) {
+                needsRender = true;
+            }
         }
 
-        this.renderer.render(this.layout);
-        this.updateMatrixTables();
+        // Only render if something actually changed
+        if (needsRender) {
+            this.scheduleRender();
+        }
+
+        // Mark matrix update as needed (but don't update if panel is hidden)
+        const matrixPanel = document.getElementById('matrixPanel');
+        if (matrixPanel && matrixPanel.style.display !== 'none') {
+            this.updateMatrixTables();
+        } else {
+            this.matrixUpdateNeeded = true;
+        }
+    }
+
+    scheduleRender() {
+        // Use requestAnimationFrame for smooth rendering
+        if (!this.renderScheduled) {
+            this.renderScheduled = true;
+            requestAnimationFrame(() => {
+                this.renderer.render(this.layout);
+                this.renderScheduled = false;
+            });
+        }
     }
 
     updateMatrixTables() {
-        this.matrixDisplay.updateActivationsMatrix(this.layout.layers);
-        this.matrixDisplay.updateWeightsMatrix(this.layout.weights, this.layout.layers);
+        try {
+            // Only update if matrix panel is visible
+            const matrixPanel = document.getElementById('matrixPanel');
+            if (!matrixPanel || matrixPanel.style.display === 'none') {
+                this.matrixUpdateNeeded = true;
+                return;
+            }
+
+            this.matrixDisplay.updateActivationsMatrix(this.layout.layers);
+            this.matrixDisplay.updateWeightsMatrix(this.layout.weights, this.layout.layers);
+            this.matrixUpdateNeeded = false;
+        } catch (error) {
+            console.error('Error updating matrix tables:', error);
+        }
     }
 
     startDemo() {
-        setInterval(() => {
-            // Simulate training data
-            this.layout.layers.forEach((layer, i) => {
-                const activations = layer.activations.map(() => Math.random());
-                this.layout.updateActivations(i, activations);
-            });
-            
-            // Update weights occasionally
-            if (Math.random() > 0.7) {
-                const demoWeights = [
-                    null,
-                    Array(8).fill().map(() => Array(2).fill().map(() => Math.random() * 2 - 1)),
-                    Array(8).fill().map(() => Array(8).fill().map(() => Math.random() * 2 - 1)),
-                    Array(1).fill().map(() => Array(8).fill().map(() => Math.random() * 2 - 1))
-                ];
-                this.layout.updateWeights(demoWeights);
-            }
+        console.log('Starting demo mode');
+        
+        // Clear any existing demo interval
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
+        }
 
-            this.renderer.render(this.layout);
-            this.updateMatrixTables();
-        }, 500);
+        this.demoInterval = setInterval(() => {
+            // Simulate training data with reduced frequency
+            if (Math.random() > 0.3) { // Only update 70% of the time
+                const mockData = {
+                    type: 'send_epoch_update',
+                    data: {
+                        epoch: (this.demoEpoch = (this.demoEpoch || 0) + 1),
+                        loss: Math.random() * 0.5 + 0.1,
+                        accuracy: Math.random() * 0.3 + 0.7,
+                        activated_nodes: this.layout.layers.map(layer => 
+                            layer.nodes.map(() => Math.random())
+                        ),
+                        weights: [
+                            [[0]], // Input layer placeholder
+                            ...this.layout.weights.slice(1).map(layerWeights => 
+                                layerWeights ? layerWeights.map(row => 
+                                    row.map(() => Math.random() * 2 - 1)
+                                ) : [[0]]
+                            )
+                        ]
+                    }
+                };
+
+                this.queueUpdate(mockData);
+            }
+        }, 800); // Slower demo updates
+    }
+
+    destroy() {
+        // Cleanup method
+        if (this.demoInterval) {
+            clearInterval(this.demoInterval);
+        }
+        
+        if (this.wsManager) {
+            this.wsManager.disconnect();
+        }
+
+        // Clear pending updates
+        this.pendingUpdates = [];
+        this.isUpdating = false;
     }
 }
