@@ -268,18 +268,18 @@ class Command(BaseCommand):
             val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
             # Training loop with reduced update frequency
-            for epoch in range(NN_info.epoch):
+            for epoch in range(NN_info.epoch//10):
                 # Train for one epoch
                 start_model = time.time()
                 model.fit(
                     train_dataset,
-                    epochs=1,
+                    epochs=10,
                     verbose=0,
                     callbacks=[ws_logger]
                 )
                 print("Model required:",time.time()-start_model)
                 # Send graph updates even less frequently (every 10 epochs)
-                if epoch % 10 == 0:
+                if epoch % 1 == 0:
                     start_epoch = time.time()
                     predictions = fast_predict(feature_train_tf).numpy()
                     send_training_update(feature_train, label_train, predictions, epoch)
