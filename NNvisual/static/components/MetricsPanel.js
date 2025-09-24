@@ -56,6 +56,7 @@ class MetricsPanel {
                 
                 // Handle epoch updates from neural network training
                 if (data.type === "send_epoch_update" && data.data) {
+                    console.log("Epoch Data Received")
                     this.handleUpdate({
                         epoch: data.data.epoch,
                         loss: data.data.loss
