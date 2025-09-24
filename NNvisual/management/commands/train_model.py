@@ -270,17 +270,20 @@ class Command(BaseCommand):
             # Training loop with reduced update frequency
             for epoch in range(NN_info.epoch):
                 # Train for one epoch
+                start_model = time.time()
                 model.fit(
                     train_dataset,
                     epochs=1,
                     verbose=0,
                     callbacks=[ws_logger]
                 )
-                
+                print("Model required:",time.time()-start_model)
                 # Send graph updates even less frequently (every 10 epochs)
                 if epoch % 10 == 0:
+                    start_epoch = time.time()
                     predictions = fast_predict(feature_train_tf).numpy()
                     send_training_update(feature_train, label_train, predictions, epoch)
+                    print("Epoch updation took",time.time()-start_epoch)
             
         except Exception as e:
             print(f"Training error: {e}")
