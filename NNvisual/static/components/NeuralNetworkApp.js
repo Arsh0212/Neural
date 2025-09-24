@@ -45,7 +45,7 @@ class NeuralNetworkApp {
                 </div>
             </div>
         `;
-        this.metricsPanel.bindElements(); // <-- Add this line
+        this.metricsPanel.bindElements();
     }
 
     setupComponents() {
@@ -94,11 +94,6 @@ class NeuralNetworkApp {
     }
 
     initWebSocket() {
-        // Initialize with demo data
-        // this.layout.layers.forEach((layer, i) => {
-        //     this.layout.updateActivations(i, layer.activations);
-        // });
-        
         // Setup WebSocket
         this.wsManager = new WebSocketManager('ws://localhost:8000/ws/training/main', {
             onOpen: () => {
