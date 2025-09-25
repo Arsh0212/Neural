@@ -170,7 +170,8 @@ class Command(BaseCommand):
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
-                    self.update_epoch_count += 1
+                    print("On epoch end epoch is:",epoch)
+                    self.update_epoch_count += 10
                     if self.update_epoch_count % 10 == 0:
                         epoch_end_time = time.time()
                         # Efficiently compute layer information
@@ -257,6 +258,7 @@ class Command(BaseCommand):
             # Training loop with reduced update frequency
             for epoch_num in range(0,NN_info.epoch,10):
                 # Train for one epoch
+                print("Epoch Num:",epoch_num)
                 start_model = time.time()
                 model.fit(
                     train_dataset,
