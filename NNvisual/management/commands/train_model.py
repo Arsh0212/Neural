@@ -167,7 +167,7 @@ class Command(BaseCommand):
             def on_epoch_end(self, epoch, logs=None):
                 try:
                     print(epoch)
-                    if epoch%5==0:
+                    if epoch%2==0:
                         
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
@@ -247,13 +247,13 @@ class Command(BaseCommand):
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
             train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-            for epoch_num in range(0,NN_info.epoch,50):
+            for epoch_num in range(0,NN_info.epoch,250):
                 # Train for one epoch
                 print("Epoch Num:",epoch_num)
                 start_model = time.time()
                 model.fit(
                     train_dataset,
-                    epochs=epoch_num+50,
+                    epochs=epoch_num+250,
                     initial_epoch = epoch_num,
                     verbose=0,
                     callbacks=[ws_logger]
