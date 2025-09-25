@@ -195,7 +195,7 @@ class Command(BaseCommand):
                             "type": "send_epoch_update",
                             "group_name": "ws_train_main",
                             "data": {
-                                "epoch": self.update_epoch_count,
+                                "epoch": epoch,
                                 "weights": weights_list,
                                 "biases": biases_list,
                                 "activated_nodes": [np.round(arr.numpy(), 4).tolist() for arr in activated_nodes],
