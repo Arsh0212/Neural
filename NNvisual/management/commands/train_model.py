@@ -170,8 +170,8 @@ class Command(BaseCommand):
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
-                    # if self.update_epoch_count % 10 == 0:
-                    if epoch==10:
+                    print(epoch)
+                    if epoch==9:
                         
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
