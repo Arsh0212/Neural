@@ -113,9 +113,7 @@ class Command(BaseCommand):
         label_test_tf = tf.constant(label_test, dtype=tf.float32)
         train_first_tf = tf.constant(train_first, dtype=tf.float32)
         
-        print("Build started", start := time.time())
         model = build_model()
-        print("Build ended", time.time()-start)
         
         # Setup WebSocket handling
         self.channel_layer = get_channel_layer()
@@ -143,7 +141,6 @@ class Command(BaseCommand):
 
             @tf.function
             def compute_layer_outputs(self, input_data):
-                compute_start = time.time()
                 """Efficiently compute all layer outputs in one forward pass"""
                 outputs = []
                 activations = []
@@ -164,14 +161,13 @@ class Command(BaseCommand):
                         activations.append(x)
                     else:
                         outputs.append(x)
-                        activations.append(x)
-                print("Computation Time:",time.time()-compute_start)     
+                        activations.append(x)     
                 return outputs, activations
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
                     print(epoch)
-                    if epoch==9:
+                    if epoch%5==0:
                         
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
@@ -251,13 +247,13 @@ class Command(BaseCommand):
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
             train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-            for epoch_num in range(0,NN_info.epoch,10):
+            for epoch_num in range(0,NN_info.epoch,5):
                 # Train for one epoch
                 print("Epoch Num:",epoch_num)
                 start_model = time.time()
                 model.fit(
                     train_dataset,
-                    epochs=epoch_num+10,
+                    epochs=epoch_num+5,
                     initial_epoch = epoch_num,
                     verbose=0,
                     callbacks=[ws_logger]
