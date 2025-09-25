@@ -171,7 +171,8 @@ class Command(BaseCommand):
             def on_epoch_end(self, epoch, logs=None):
                 try:
                     self.update_epoch_count += 1
-                    if self.update_epoch_count % 5 == 0:
+                    if self.update_epoch_count % 10 == 0:
+                        epoch_end_time = time.time()
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
                         
@@ -206,7 +207,7 @@ class Command(BaseCommand):
                                 "accuracy": float(logs.get("accuracy", 0)),
                             }
                         }
-                        
+                        print("10 Epoch endtime:",time.time()-epoch_end_time)
                         # Queue message for async sending
                         self.parent.queue_websocket_message(detailed_message)
                 except Exception as e:
