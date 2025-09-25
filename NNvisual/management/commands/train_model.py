@@ -168,12 +168,11 @@ class Command(BaseCommand):
                 print("Computation Time:",time.time()-compute_start)     
                 return outputs, activations
 
-            def on_train_end(self, epoch, logs=None):
+            def on_epoch_end(self, epoch, logs=None):
                 try:
-                    self.update_epoch_count += 1
-                    print(self.update_epoch_count)
                     # if self.update_epoch_count % 10 == 0:
-                    if True:
+                    if epoch==10:
+                        
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
                         
