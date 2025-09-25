@@ -1,5 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from .models import NeuralNetwork
 import json
 
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
@@ -46,7 +47,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         # You could use this to pause/resume training, etc.
         if data.get("type") == "config": 
             data = data.get("config") 
-            print(data)          
+            print("Config data received after updation",data)          
             await sync_to_async(NeuralNetwork.objects.update_or_create)( #type: ignore
                 id = 1,
                 defaults= {
