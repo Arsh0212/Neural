@@ -262,7 +262,7 @@ class Command(BaseCommand):
                 start_model = time.time()
                 model.fit(
                     train_dataset,
-                    epochs=10,
+                    epochs=epoch_num+10,
                     initial_epoch = epoch_num,
                     verbose=0,
                     callbacks=[ws_logger] 
