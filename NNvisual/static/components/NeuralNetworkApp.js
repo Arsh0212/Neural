@@ -95,7 +95,10 @@ class NeuralNetworkApp {
 
     initWebSocket() {
         // Setup WebSocket
-        this.wsManager = new WebSocketManager('ws://localhost:8000/ws/training/main', {
+        const loc = window.location;
+        let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
+        let endpoint = wsStart + loc.host + "/ws/training/main";
+        this.wsManager = new WebSocketManager(endpoint, {
             onOpen: () => {
                 console.log("Websocket connected",this.wsManager)
                 this.metricsPanel.updateStatus(true);
