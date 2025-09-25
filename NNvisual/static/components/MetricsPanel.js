@@ -233,6 +233,7 @@ class MetricsPanel {
 
     updateValues() {
         if (this.config && this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+            console.log(this.config)
             this.webSocket.send(JSON.stringify({
                 type: "config",
                 config: this.config
