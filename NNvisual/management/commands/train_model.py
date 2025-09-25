@@ -168,7 +168,7 @@ class Command(BaseCommand):
                 print("Computation Time:",time.time()-compute_start)     
                 return outputs, activations
 
-            def on_epoch_end(self, epoch, logs=None):
+            def on_train_end(self, epoch, logs=None):
                 try:
                     self.update_epoch_count += 1
                     print(self.update_epoch_count)
@@ -250,10 +250,7 @@ class Command(BaseCommand):
             batch_size = max(NN_info.batch_size, 64)  # Minimum batch size
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
             train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-            
-            # val_dataset = tf.data.Dataset.from_tensor_slices((feature_test_tf, label_test_tf))
-            # val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-            # Training loop with reduced update frequency
+
             for epoch_num in range(0,NN_info.epoch,10):
                 # Train for one epoch
                 print("Epoch Num:",epoch_num)
@@ -263,9 +260,9 @@ class Command(BaseCommand):
                     epochs=epoch_num+10,
                     initial_epoch = epoch_num,
                     verbose=0,
-                    # callbacks=[ws_logger]
+                    callbacks=[ws_logger]
                 )
-                ws_logger()
+
                 print("Model required:",time.time()-start_model)
                 # Send graph updates even less frequently (every 10 epochs)
                 predictions = fast_predict(feature_train_tf).numpy()
