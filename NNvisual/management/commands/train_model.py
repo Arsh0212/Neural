@@ -247,13 +247,13 @@ class Command(BaseCommand):
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
             train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-            for epoch_num in range(0,NN_info.epoch,5):
+            for epoch_num in range(0,NN_info.epoch,50):
                 # Train for one epoch
                 print("Epoch Num:",epoch_num)
                 start_model = time.time()
                 model.fit(
                     train_dataset,
-                    epochs=epoch_num+5,
+                    epochs=epoch_num+50,
                     initial_epoch = epoch_num,
                     verbose=0,
                     callbacks=[ws_logger]
