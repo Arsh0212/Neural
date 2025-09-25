@@ -2,10 +2,12 @@ from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Dense # type: ignore 
 from tensorflow.keras.optimizers import Adam # type: ignore 
 import tensorflow as tf
+import time
 from .models import NeuralNetwork
 
 
 def get_dataset():
+    dataset_time = time.time()
     NN_info = NeuralNetwork.objects.get(id=1)
 
     if NN_info.dataset == 1:
@@ -33,7 +35,7 @@ def get_dataset():
     feature_test = features[n:]
     label_test = labels[n:]
     train_first = feature_train[0].reshape(1, 2)
-
+    print("Dataset Received in:",time.time()-dataset_time)
     return feature_train, label_train, feature_test, label_test, train_first, name
 
 def build_model():

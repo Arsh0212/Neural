@@ -6,6 +6,7 @@ class MatrixDisplay {
     }
 
     updateActivationsMatrix(layers) {
+        console.log("Updating Activation Matrix")
         const table = document.createElement('table');
         table.className = 'matrix-table';
         
@@ -35,6 +36,7 @@ class MatrixDisplay {
     }
 
     updateWeightsMatrix(weights, layers) {
+        console.log("Updating Weight Matrix")
         if (!weights.length) {
             this.weightsContainer.innerHTML = '<div style="color: #666;">No weight data available</div>';
             return;

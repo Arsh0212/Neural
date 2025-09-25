@@ -60,10 +60,11 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
 
     # Receive message from the group (from train_model.py)
     async def send_epoch_update(self, event):
+        print("Received EPoch update:",event["type"],event["group_name"])
         # event["data"] contains the payload sent from WSLogger callback
         await self.send(text_data=json.dumps(event))
 
     async def training_update(self, event):
+        print("Received Training Update:",event.keys())
         # event["data"] contains the payload sent from train_model.py
-        if event["type"] == "training_update":
-            await self.send(text_data=json.dumps(event))
+        await self.send(text_data=json.dumps(event))

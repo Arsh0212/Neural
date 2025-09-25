@@ -33,7 +33,7 @@ class MetricsPanel {
         this.webSocket = new WebSocket(endpoint)
 
         this.webSocket.onopen = () => {
-            console.log("Metrics Connection established");
+            console.log("Metrics Connection established",this.webSocket);
             this.updateStatus(true);
         }
 
@@ -46,7 +46,7 @@ class MetricsPanel {
             try {
                 // FIXED: Parse JSON only once and use proper logic
                 const data = JSON.parse(event.data);
-                console.log("Random data received")
+                console.log("Random data received to metrics")
                 // Handle config updates
                 if (data.type === "config" && data.config) {
                     console.log("config data received")

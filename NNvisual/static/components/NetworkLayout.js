@@ -12,6 +12,7 @@ class NetworkLayout {
     }
 
     calculateLayout(width, height) {
+        console.log("Calculating Layout")
         const padding = 80;
         const layerSpacing = (width - 2 * padding) / Math.max(1, this.layers.length - 1);
         const maxNodes = Math.max(...this.layers.map(layer => layer.count));

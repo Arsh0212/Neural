@@ -97,11 +97,11 @@ class NeuralNetworkApp {
         // Setup WebSocket
         this.wsManager = new WebSocketManager('ws://localhost:8000/ws/training/main', {
             onOpen: () => {
-                console.log(this.wsManager)
+                console.log("Websocket connected",this.wsManager)
                 this.metricsPanel.updateStatus(true);
             },
             onMessage: (data) => {
-                console.log("On epoch end",data)
+                console.log("Epoch data received",data)
                 if (data.type === 'send_epoch_update'){
                 this.handleUpdate(data.data);
                 }

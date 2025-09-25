@@ -241,6 +241,7 @@ class Command(BaseCommand):
                 print(f"Error sending training update: {e}")
 
         try:
+            config_time = time.time()
             NN_info = NeuralNetwork.objects.get(id=1)
             
             # Create optimized callback
@@ -253,7 +254,7 @@ class Command(BaseCommand):
             
             val_dataset = tf.data.Dataset.from_tensor_slices((feature_test_tf, label_test_tf))
             val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-
+            print("config took:",time.time()-config_time)
             # Training loop with reduced update frequency
             for epoch in range(NN_info.epoch//10):
                 # Train for one epoch
