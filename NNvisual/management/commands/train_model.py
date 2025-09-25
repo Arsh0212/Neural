@@ -3,15 +3,26 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import os, warnings
 import time
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-warnings.filterwarnings("ignore")
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # suppress INFO & WARNING logs
+warnings.filterwarnings("ignore")  # suppress Python warnings
 import tensorflow as tf
 import numpy as np
 from NNvisual.training import build_model, get_dataset
+import time
 from NNvisual.models import NeuralNetwork
 import threading
 from queue import Queue, Empty
 import json
+
+# Pre-compute sigmoid for better performance
+@tf.function
+def sigmoid_tf(x):
+    return tf.nn.sigmoid(x)
+
+def sigmoid_numpy(x):
+    # Clip to prevent overflow
+    x = np.clip(x, -500, 500)
+    return 1 / (1 + np.exp(-x))
 
 class Command(BaseCommand):
     help = "Train the neural network and broadcast updates"
@@ -19,56 +30,32 @@ class Command(BaseCommand):
     def __init__(self):
         super().__init__()
         self.channel_layer = None
-        self.websocket_queue = Queue(maxsize=20)  # Smaller queue
+        self.websocket_queue = Queue(maxsize=50)  # Limit queue size
         self.websocket_thread = None
         self.stop_event = threading.Event()
         self.last_update_time = 0
-        self.min_update_interval = 0.2  # Less frequent updates (200ms)
+        self.min_update_interval = 0.1  # Minimum 500ms between updates
 
     def setup_websocket_handler(self):
-        """Optimized async websocket message handler"""
+        """Setup async websocket message handler in separate thread"""
         def websocket_worker():
-            batch_messages = []
-            batch_timeout = 0.1
-            last_batch_send = time.time()
-            
             while not self.stop_event.is_set():
                 try:
-                    message = self.websocket_queue.get(timeout=batch_timeout)
-                    if message is None:
+                    message = self.websocket_queue.get(timeout=0.1)
+                    if message is None:  # Shutdown signal
                         break
                     
-                    batch_messages.append(message)
+                    group_name = message.get("group_name")
                     
-                    # Send batch when queue is empty or timeout reached
-                    current_time = time.time()
-                    if (self.websocket_queue.empty() or 
-                        current_time - last_batch_send > batch_timeout):
-                        
-                        for msg in batch_messages:
-                            try:
-                                async_to_sync(self.channel_layer.group_send)(
-                                    msg.get("group_name"), msg
-                                )
-                            except Exception as e:
-                                print(f"WebSocket send error: {e}")
-                        
-                        batch_messages.clear()
-                        last_batch_send = current_time
-                        
+                    # Compress data if too large
+                    if "data" in message and len(json.dumps(message["data"])) > 10000:
+                        message["data"] = self.compress_data(message["data"])
+                    
+                    async_to_sync(self.channel_layer.group_send)(
+                        group_name, message
+                    )
                     self.websocket_queue.task_done()
-                    
                 except Empty:
-                    # Send any pending batched messages
-                    if batch_messages:
-                        for msg in batch_messages:
-                            try:
-                                async_to_sync(self.channel_layer.group_send)(
-                                    msg.get("group_name"), msg
-                                )
-                            except:
-                                pass
-                        batch_messages.clear()
                     continue
                 except Exception as e:
                     print(f"WebSocket error: {e}")
@@ -77,38 +64,53 @@ class Command(BaseCommand):
         self.websocket_thread = threading.Thread(target=websocket_worker, daemon=True)
         self.websocket_thread.start()
 
+    def compress_data(self, data):
+        """Compress large data payloads"""
+        compressed = {}
+        for key, value in data.items():
+            if key == "weights" and isinstance(value, list):
+                # Only send first and last layer weights, sample middle layers
+                if len(value) > 3:
+                    compressed[key] = [value[0], value[-1]]  # First and last only
+                else:
+                    compressed[key] = value
+            elif key == "activated_nodes" and isinstance(value, list):
+                # Sample nodes if too many
+                if len(value) > 0 and isinstance(value[0], list) and len(value[0]) > 100:
+                    compressed[key] = [arr[:50] for arr in value]  # First 50 nodes only
+                else:
+                    compressed[key] = value
+            else:
+                compressed[key] = value
+        return compressed
+
     def queue_websocket_message(self, message):
-        """Optimized message queuing with aggressive rate limiting"""
+        """Queue websocket message for async sending with rate limiting"""
         current_time = time.time()
         
+        # Rate limiting
         if current_time - self.last_update_time < self.min_update_interval:
-            return
+            return  
+        # Skip this update
             
         try:
+            # Non-blocking put - if queue is full, drop the message
             self.websocket_queue.put_nowait(message)
             self.last_update_time = current_time
         except:
+            # Queue full or other error, skip this update
             pass
 
     def handle(self, *args, **kwargs):
         print("Train Command called")
-        
-        # Get configuration first
-        NN_info = NeuralNetwork.objects.get(id=1)
-        
-        # Get dataset
+        # Get dataset once
         feature_train, label_train, feature_test, label_test, train_first, name = get_dataset()
         
-        # Use smaller sample for training if dataset is large
-        max_samples = 5000  # Limit training samples
-        if len(feature_train) > max_samples:
-            indices = np.random.choice(len(feature_train), max_samples, replace=False)
-            feature_train = feature_train[indices]
-            label_train = label_train[indices]
-        
-        # Convert to TensorFlow tensors
+        # Convert to TensorFlow tensors for better performance
         feature_train_tf = tf.constant(feature_train, dtype=tf.float32)
         label_train_tf = tf.constant(label_train, dtype=tf.float32)
+        feature_test_tf = tf.constant(feature_test, dtype=tf.float32)
+        label_test_tf = tf.constant(label_test, dtype=tf.float32)
         train_first_tf = tf.constant(train_first, dtype=tf.float32)
         
         print("Build started", start := time.time())
@@ -120,135 +122,117 @@ class Command(BaseCommand):
         self.setup_websocket_handler()
 
         # Pre-compile prediction function
-        @tf.function(experimental_relax_shapes=True)
+        @tf.function
         def fast_predict(x):
             return model(x, training=False)
 
-        class SuperOptimizedWSLogger(tf.keras.callbacks.Callback):
-            def __init__(self, parent_command, train_sample):
+        class OptimizedWSLogger(tf.keras.callbacks.Callback):
+            def __init__(self, parent_command, train_sample, update_epoch_count=0):
                 super().__init__()
                 self.parent = parent_command
                 self.train_sample = train_sample
-                self.epoch_count = 0
+                self.update_epoch_count = update_epoch_count
                 self.last_detailed_update = 0
-                
-                # Pre-compute activation functions
-                self.activation_map = {
-                    'relu': tf.nn.relu,
-                    'sigmoid': tf.nn.sigmoid,
-                    'tanh': tf.nn.tanh,
-                    'softmax': tf.nn.softmax,
-                    'linear': tf.identity
+                self.activation_functions = {
+                    'relu': lambda x: tf.nn.relu(x),
+                    'sigmoid': lambda x: tf.nn.sigmoid(x),
+                    'tanh': lambda x: tf.nn.tanh(x),
+                    'softmax': lambda x: tf.nn.softmax(x),
+                    'linear': lambda x: x
                 }
+
+            @tf.function
+            def compute_layer_outputs(self, input_data):
+                compute_start = time.time()
+                """Efficiently compute all layer outputs in one forward pass"""
+                outputs = []
+                activations = []
+                x = input_data
+                activations.append(train_first)
+                
+                for layer in self.model.layers:
+                    if hasattr(layer, 'activation'):
+                        weights, biases = layer.kernel, layer.bias
+                        linear_output = tf.matmul(x, weights) + biases
+                        outputs.append(linear_output)
+                        
+                        activation_name = layer.activation.__name__
+                        if activation_name in self.activation_functions:
+                            x = self.activation_functions[activation_name](linear_output)
+                        else:
+                            x = linear_output
+                        activations.append(x)
+                    else:
+                        outputs.append(x)
+                        activations.append(x)
+                print("Computation Time:",time.time()-compute_start)     
+                return outputs, activations
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
-                    self.epoch_count += 1
-                    
-                    # Only send detailed updates every 20 epochs (less frequent)
-                    if self.epoch_count % 20 == 0:
-                        self.send_detailed_update(logs)
-                    
-                    # Send basic metrics every 5 epochs
-                    elif self.epoch_count % 5 == 0:
-                        self.send_basic_update(logs)
+                    self.update_epoch_count += 1
+                    if self.update_epoch_count % 10 == 0:
+                        epoch_end_time = time.time()
+                        # Efficiently compute layer information
+                        node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
                         
+                        # Extract weights and biases efficiently
+                        weights_list = []
+                        biases_list = []
+                        
+                        # Add input layer (no weights/biases)
+                        weights_list.append([[0]])
+                        biases_list.append([0])
+                        
+                        for layer in self.model.layers:
+                            if layer.get_weights():
+                                w, b = layer.get_weights()
+                                # Limit precision to reduce data size
+                                weights_list.append(np.round(w, 4).tolist())
+                                biases_list.append(np.round(b, 4).tolist())
+                            else:
+                                weights_list.append([[0]])
+                                biases_list.append([0])
+
+                        # Prepare detailed message
+                        detailed_message = {
+                            "type": "send_epoch_update",
+                            "group_name": "ws_train_main",
+                            "data": {
+                                "epoch": self.update_epoch_count,
+                                "weights": weights_list,
+                                "biases": biases_list,
+                                "activated_nodes": [np.round(arr.numpy(), 4).tolist() for arr in activated_nodes],
+                                "loss": float(logs.get("loss", 0)),
+                                "accuracy": float(logs.get("accuracy", 0)),
+                            }
+                        }
+                        print("10 Epoch endtime:",time.time()-epoch_end_time)
+                        # Queue message for async sending
+                        self.parent.queue_websocket_message(detailed_message)
                 except Exception as e:
                     print(f"Error in WSLogger: {e}")
 
-            def send_basic_update(self, logs):
-                """Send lightweight updates"""
-                message = {
-                    "type": "send_epoch_update",
-                    "group_name": "ws_train_main",
-                    "data": {
-                        "epoch": self.epoch_count,
-                        "loss": float(logs.get("loss", 0)),
-                        "accuracy": float(logs.get("accuracy", 0)),
-                        "basic": True
-                    }
-                }
-                self.parent.queue_websocket_message(message)
-
-            @tf.function(experimental_relax_shapes=True)
-            def compute_activations_fast(self, input_data):
-                """Optimized activation computation"""
-                activations = [input_data]
-                x = input_data
-                
-                for layer in self.model.layers:
-                    if hasattr(layer, 'kernel'):
-                        x = tf.matmul(x, layer.kernel) + layer.bias
-                        if hasattr(layer, 'activation') and layer.activation is not None:
-                            if hasattr(layer.activation, '__name__'):
-                                activation_name = layer.activation.__name__
-                                if activation_name in self.activation_map:
-                                    x = self.activation_map[activation_name](x)
-                        activations.append(x)
-                
-                return activations
-
-            def send_detailed_update(self, logs):
-                """Send detailed updates less frequently"""
-                start_time = time.time()
-                
-                # Compute activations efficiently
-                activations = self.compute_activations_fast(self.train_sample)
-                
-                # Extract only essential weight information
-                weights_list = []
-                biases_list = []
-                
-                # Simplified weight extraction
-                for layer in self.model.layers:
-                    if layer.get_weights():
-                        w, b = layer.get_weights()
-                        # Reduce precision and sample weights if too large
-                        if w.size > 1000:  # Sample large weight matrices
-                            w_sample = w.flatten()
-                            indices = np.linspace(0, len(w_sample)-1, 100, dtype=int)
-                            w_reduced = w_sample[indices].reshape(-1, 1)
-                        else:
-                            w_reduced = w
-                        
-                        weights_list.append(np.round(w_reduced, 3).tolist())
-                        biases_list.append(np.round(b[:10], 3).tolist())  # First 10 biases only
-                    else:
-                        weights_list.append([[0]])
-                        biases_list.append([0])
-
-                message = {
-                    "type": "send_epoch_update", 
-                    "group_name": "ws_train_main",
-                    "data": {
-                        "epoch": self.epoch_count,
-                        "weights": weights_list,
-                        "biases": biases_list,
-                        "activated_nodes": [np.round(arr.numpy()[:50], 3).tolist() for arr in activations],  # First 50 nodes
-                        "loss": float(logs.get("loss", 0)),
-                        "accuracy": float(logs.get("accuracy", 0)),
-                    }
-                }
-                
-                print(f"Detailed update time: {time.time() - start_time:.3f}s")
-                self.parent.queue_websocket_message(message)
-
-        def send_training_update_optimized(X_train, y_train, predictions, epoch):
-            """Ultra-lightweight training updates"""
+        def send_training_update(X_train, y_train, predictions, epoch, batch_size=500):
+            """Send training updates with reduced data size"""
             try:
-                # Use much smaller sample
-                sample_size = min(200, len(X_train))  # Reduced from 500
+                # Sample data more aggressively
+                sample_size = min(batch_size, len(X_train))
                 indices = np.random.choice(len(X_train), sample_size, replace=False)
-                
+                X_sample = X_train[indices]
+                y_sample = y_train[indices]
+                pred_sample = predictions[indices]
+
+                # Round to reduce precision and data size
                 message = {
                     "type": "training_update",
-                    "group_name": "ws_train_graph", 
+                    "group_name": "ws_train_graph",
                     "data": {
                         "epoch": epoch + 1,
-                        "predicted": np.round(predictions[indices, 0], 3).tolist(),
-                        "x": np.round(X_train[indices, 0], 3).tolist(),
-                        "y": np.round(X_train[indices, 1], 3).tolist(),
-                        "labels": y_train[indices].tolist()
+                        "predicted": np.round(pred_sample[:, 0] if pred_sample.shape[1] > 0 else pred_sample, 4).tolist(),
+                        "x": np.round(X_sample[:, 0], 4).tolist(),
+                        "y": np.round(X_sample[:, 1], 4).tolist(),
+                        "labels": y_sample.tolist()
                     }
                 }
                 
@@ -258,48 +242,33 @@ class Command(BaseCommand):
                 print(f"Error sending training update: {e}")
 
         try:
+            NN_info = NeuralNetwork.objects.get(id=1)
+            
             # Create optimized callback
-            ws_logger = SuperOptimizedWSLogger(self, train_first_tf)
+            ws_logger = OptimizedWSLogger(self, train_first_tf)
             
-            # Optimize batch size - larger batches = fewer iterations
-            optimal_batch_size = max(NN_info.batch_size, 128)  # Increased minimum
-            
-            # Create optimized dataset pipeline
+            # Use tf.data for better performance with larger batch sizes
+            batch_size = max(NN_info.batch_size, 64)  # Minimum batch size
             train_dataset = tf.data.Dataset.from_tensor_slices((feature_train_tf, label_train_tf))
-            train_dataset = (train_dataset
-                           .cache()  # Cache in memory
-                           .shuffle(buffer_size=min(1000, len(feature_train)))
-                           .batch(optimal_batch_size, drop_remainder=True)
-                           .prefetch(tf.data.AUTOTUNE))
+            train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
             
-            # **KEY OPTIMIZATION: Use single training call with initial_epoch**
-            total_epochs = NN_info.epoch
-            update_frequency = max(1, total_epochs // 20)  # Update 20 times max
-            
-            start_total_training = time.time()
-            
-            for epoch_batch in range(0, total_epochs, 10):
-                batch_end = min(epoch_batch + 10, total_epochs)
-                
+            # val_dataset = tf.data.Dataset.from_tensor_slices((feature_test_tf, label_test_tf))
+            # val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+            # Training loop with reduced update frequency
+            for epoch_num in range(0,NN_info.epoch,10):
+                # Train for one epoch
                 start_model = time.time()
-                
-                # Continue training from where we left off
                 model.fit(
                     train_dataset,
-                    epochs=batch_end,
-                    initial_epoch=epoch_batch,  # KEY: Don't restart training
+                    epochs=10,
+                    initial_epoch = epoch_num,
                     verbose=0,
-                    callbacks=[ws_logger] if epoch_batch % 20 == 0 else []  # Callbacks only occasionally
+                    callbacks=[ws_logger] 
                 )
-                
-                print(f"Epochs {epoch_batch}-{batch_end} required: {time.time()-start_model:.3f}s")
-                
-                # Send graph updates much less frequently
-                if epoch_batch % 40 == 0:  # Every 40 epochs instead of 10
-                    predictions = fast_predict(feature_train_tf).numpy()
-                    send_training_update_optimized(feature_train, label_train, predictions, epoch_batch)
-            
-            print(f"Total training time: {time.time() - start_total_training:.3f}s")
+                print("Model required:",time.time()-start_model)
+                # Send graph updates even less frequently (every 10 epochs)
+                predictions = fast_predict(feature_train_tf).numpy()
+                send_training_update(feature_train, label_train, predictions, epoch_num)
             
         except Exception as e:
             print(f"Training error: {e}")
@@ -307,8 +276,8 @@ class Command(BaseCommand):
             # Cleanup
             self.stop_event.set()
             if self.websocket_queue:
-                self.websocket_queue.put(None)
+                self.websocket_queue.put(None)  # Signal shutdown
             if self.websocket_thread:
-                self.websocket_thread.join(timeout=2)
+                self.websocket_thread.join(timeout=5)
             
         print("Training complete.")
