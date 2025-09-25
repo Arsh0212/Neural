@@ -172,7 +172,8 @@ class Command(BaseCommand):
                 try:
                     self.update_epoch_count += 1
                     print(self.update_epoch_count)
-                    if self.update_epoch_count % 10 == 0:
+                    # if self.update_epoch_count % 10 == 0:
+                    if True:
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
                         
