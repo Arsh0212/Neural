@@ -1,6 +1,9 @@
 NN/settings1.py
+NN/settings.py
+manage.py
 NN/local_settings.py
 temp
 # Ignore Python cache files
 __pycache__/
 *.pyc
+*.log
