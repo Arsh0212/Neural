@@ -47,7 +47,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         if data.get("type") == "config": 
             data = data.get("config") 
             print(data)          
-            await sync_to_async(NeuralNetwork.objects.update_or_create)(
+            await sync_to_async(NeuralNetwork.objects.update_or_create)( #type: ignore
                 id = 1,
                 defaults= {
                 "epoch" : data.get("epochs"),
