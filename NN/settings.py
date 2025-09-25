@@ -251,8 +251,4 @@ if not DEBUG:
 import gc
 gc.set_threshold(700, 10, 10)  # More aggressive garbage collection
 
-# settings.py (near the very end)
-try:
-    from .local_settings import *
-except ImportError:
-    pass
+
