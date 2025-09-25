@@ -181,7 +181,10 @@
                 const statusEl = document.getElementById('connectionStatus');
                 
                 try {
-                    this.ws = new WebSocket('ws://localhost:8000/ws/training/graph/');
+                    const loc = window.location;
+                    let wsStart = loc.protocol === "https:" ? "wss://" : "ws://";
+                    let endpoint = wsStart + loc.host + "/ws/training/graph";
+                    this.ws = new WebSocket(endpoint);
                     
                     this.ws.onopen = () => {
                         this.reconnectAttempts = 0;
