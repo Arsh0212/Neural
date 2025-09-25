@@ -173,7 +173,6 @@ class Command(BaseCommand):
                     self.update_epoch_count += 1
                     print(self.update_epoch_count)
                     if self.update_epoch_count % 10 == 0:
-                        epoch_end_time = time.time()
                         # Efficiently compute layer information
                         node_values, activated_nodes = self.compute_layer_outputs(self.train_sample)
                         
@@ -208,7 +207,6 @@ class Command(BaseCommand):
                                 "accuracy": float(logs.get("accuracy", 0)),
                             }
                         }
-                        print("10 Epoch endtime:",time.time()-epoch_end_time)
                         # Queue message for async sending
                         self.parent.queue_websocket_message(detailed_message)
                 except Exception as e:
@@ -265,8 +263,9 @@ class Command(BaseCommand):
                     epochs=epoch_num+10,
                     initial_epoch = epoch_num,
                     verbose=0,
-                    callbacks=[ws_logger] 
+                    # callbacks=[ws_logger]
                 )
+                ws_logger()
                 print("Model required:",time.time()-start_model)
                 # Send graph updates even less frequently (every 10 epochs)
                 predictions = fast_predict(feature_train_tf).numpy()
