@@ -170,8 +170,8 @@ class Command(BaseCommand):
 
             def on_epoch_end(self, epoch, logs=None):
                 try:
-                    print("On epoch end epoch is:",epoch)
-                    self.update_epoch_count += 10
+                    self.update_epoch_count += 1
+                    print(self.update_epoch_count)
                     if self.update_epoch_count % 10 == 0:
                         epoch_end_time = time.time()
                         # Efficiently compute layer information
