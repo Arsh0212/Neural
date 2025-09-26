@@ -61,7 +61,7 @@ class TrainModel:
 
     def train(self):
         for i in range(self.epoch):
-            train_start = time.time()
+            train_start= time.time()
             predictions,data = self.model.forward(values,i)
             loss = self.criterion(predictions,labels)
             self.losses.append(loss.detach().numpy())
@@ -87,11 +87,11 @@ class TrainModel:
                 
                 message = self.create_message(i,weights,biases,data,loss,1)
                 self.send_web_data(message)
-            print("Phase 1:",time.time()-train_start) # print something
+            print("Phase 1:",time.time() - train_start) # print something
             self.optimized.zero_grad()
             loss.backward()
             self.optimized.step()
-            print("End:",time.time()-train_start)
+            print("End:",time.time() - train_start)
 
     def create_message(self,epoch,weights,biases,nodes,loss,accuracy=1):
         message_data = {
