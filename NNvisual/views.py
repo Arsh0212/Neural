@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.core.management import call_command
 import threading
+from NNvisual.pytorch import TrainModel
 
 
 def home(request):
@@ -23,3 +24,9 @@ def train(request):
     thread.start()
 
     return JsonResponse({"status": "Training started"})
+
+def pytorch(request):
+    try:
+        TrainModel.train()
+    except Exception as e:
+        print("Error occured",e)
