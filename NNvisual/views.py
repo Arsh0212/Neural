@@ -15,6 +15,7 @@ def graphs(request):
 
 def train(request):
     def run_training():
+        print("Running Command")
         call_command('train_model')  # runs your Command.handle()
 
     # Run training in background thread
