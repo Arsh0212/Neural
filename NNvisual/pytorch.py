@@ -7,7 +7,7 @@ from sklearn.datasets import make_moons
 from channels.layers import get_channel_layer
 
 
-values,labels  = make_moons(n_samples=500,noise=0.1,random_state=42)
+values,labels  = make_moons(n_samples=300,noise=0.2,random_state=42)
 values = torch.FloatTensor(values)
 labels = torch.FloatTensor(labels).unsqueeze(1)
 
