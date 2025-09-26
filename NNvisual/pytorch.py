@@ -68,7 +68,7 @@ class TrainModel:
 
             if i%10 == 0 and data:
                 pred = torch.sigmoid(predictions) > 0.5
-                self.graph_message(i,values,pred.tolist(),labels) 
+                # self.graph_message(i,values,pred.tolist(),labels) 
                 weights = []
                 biases = []
                 weights.append([[0]])
@@ -84,7 +84,7 @@ class TrainModel:
                         weights.append([[round(v, 2) for v in row] for row in param_list])
                     elif "bias" in name:
                         biases.append([round(v, 2) for v in param_list])
-                
+                print("Phase 0:",time.time()-train_start)
                 message = self.create_message(i,weights,biases,data,loss,1)
                 self.send_web_data(message)
             print("Phase 1:",time.time() - train_start) # print something
