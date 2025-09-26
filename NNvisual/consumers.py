@@ -47,7 +47,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         # You could use this to pause/resume training, etc.
         if data.get("type") == "config": 
             data = data.get("config") 
-            print("Config data received after updation",data)          
+          
             await sync_to_async(NeuralNetwork.objects.update_or_create)( #type: ignore
                 id = 1,
                 defaults= {
@@ -61,11 +61,9 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
 
     # Receive message from the group (from train_model.py)
     async def send_epoch_update(self, event):
-        print("Received EPoch update:",event["type"],event["group_name"])
         # event["data"] contains the payload sent from WSLogger callback
         await self.send(text_data=json.dumps(event))
 
     async def training_update(self, event):
-        print("Received Training Update:",event.keys())
         # event["data"] contains the payload sent from train_model.py
         await self.send(text_data=json.dumps(event))
