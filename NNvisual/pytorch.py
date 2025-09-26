@@ -31,17 +31,17 @@ class NeuralNetwork(nn.Module):
             def round_tensor(t):
                 return [round(v, 2) for v in t.detach().tolist()]
             
-            self.data.append(round_tensor(input.mean(dim=0)))
-            self.data.append(round_tensor(first_nodes.mean(dim=0)))
-            self.data.append(round_tensor(second_nodes.mean(dim=0)))
-            self.data.append(round_tensor(output.mean(dim=0)))
+            self.data.append([round_tensor(input.mean(dim=0))])
+            self.data.append([round_tensor(first_nodes.mean(dim=0))])
+            self.data.append([round_tensor(second_nodes.mean(dim=0))])
+            self.data.append([round_tensor(output.mean(dim=0))])
             
             return output, self.data
         
         return output,None
     
 class TrainModel:
-    def __init__(self, epoch=5, lr = 0.01):
+    def __init__(self, epoch=250, lr = 0.01):
         torch.manual_seed(41)
         self.model = NeuralNetwork()
         self.criterion = nn.CrossEntropyLoss()
@@ -61,8 +61,9 @@ class TrainModel:
             print("Error occured",e)
 
     def train(self):
-
+        print("Traininia")
         for i in range(self.epoch):
+            print(i)
             predictions,data = self.model.forward(values,i)
             loss = self.criterion(predictions,labels)
             self.losses.append(loss.detach().numpy())
@@ -87,12 +88,14 @@ class TrainModel:
                 # print("Nodes",data)
                 # print("Weights:",weights)
                 # print("Biases:",biases)
+                print("Sending message")
                 message = self.create_message(i,weights,biases,data,loss,1)
                 self.send_web_data(message)
                 
             self.optimized.zero_grad()
             loss.backward()
             self.optimized.step()
+
     def create_message(self,epoch,weights,biases,nodes,loss,accuracy=1):
         message_data = {
                 "epoch": epoch,
@@ -109,5 +112,5 @@ class TrainModel:
                 "data": message_data
             }
 
-tm = TrainModel()
-tm.train()
+# tm = TrainModel()
+# tm.train()

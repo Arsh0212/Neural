@@ -26,7 +26,16 @@ def train(request):
     return JsonResponse({"status": "Training started"})
 
 def pytorch(request):
-    try:
-        TrainModel.train()
-    except Exception as e:
-        print("Error occured",e)
+    def run_training():
+        try:
+            tm = TrainModel()
+            tm.train()
+            print("Training finished successfully")
+        except Exception as e:
+            print("Error during training:", e)
+
+    # Run training in background thread
+    thread = threading.Thread(target=run_training)
+    thread.start()
+
+    return JsonResponse({"status": "Training started"})
