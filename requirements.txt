@@ -9,5 +9,5 @@ dj-database-url==2.1.0
 psycopg2-binary==2.9.9
 whitenoise[brotli]==6.6.0
 gunicorn==21.2.0
---index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.8.0+cpu
