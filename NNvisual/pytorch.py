@@ -87,7 +87,7 @@ class TrainModel:
                 
                 message = self.create_message(i,weights,biases,data,loss,1)
                 self.send_web_data(message)
-            print("Phase 1:",time.time()-train_start)
+            print("Phase 1:",time.time()-train_start) # print something
             self.optimized.zero_grad()
             loss.backward()
             self.optimized.step()
