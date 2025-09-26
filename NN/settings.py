@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-u4kasw_%_qpx!9q7)zg^bf@@cbn^#_8pibh)osld=b4gmdqcdn')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = False
 
 ALLOWED_HOSTS = [
     'neural-lvo1.onrender.com',
