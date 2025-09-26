@@ -6,10 +6,9 @@ from sklearn.datasets import make_moons
 from channels.layers import get_channel_layer
 
 
-values,labels  = make_moons(n_samples=100,noise=0.1,random_state=42)
+values,labels  = make_moons(n_samples=500,noise=0.1,random_state=42)
 values = torch.FloatTensor(values)
-labels = torch.LongTensor(labels)
-# lables = torch.IntTensor(data)
+labels = torch.FloatTensor(labels).unsqueeze(1)
 
 
 class NeuralNetwork(nn.Module):
@@ -17,14 +16,14 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(2,8)
         self.fc2 = nn.Linear(8,8)
-        self.output = nn.Linear(8,2)
+        self.output = nn.Linear(8,1)
 
     def forward(self,input,epoch):
         self.data = []
-        
         first_nodes = func.relu(self.fc1(input))
         second_nodes = func.relu(self.fc2(first_nodes))
         output = self.output(second_nodes)
+        
 
         if epoch % 10 == 0:
             # Helper function to round tensor to 2 decimals and convert to list
@@ -41,10 +40,10 @@ class NeuralNetwork(nn.Module):
         return output,None
     
 class TrainModel:
-    def __init__(self, epoch=250, lr = 0.01):
+    def __init__(self, epoch=200, lr = 0.01):
         torch.manual_seed(41)
         self.model = NeuralNetwork()
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCEWithLogitsLoss()
         self.optimized = torch.optim.Adam(self.model.parameters(), lr = lr)
         self.epoch = epoch
         self.losses = []
@@ -52,7 +51,6 @@ class TrainModel:
     def send_web_data(self,message):
         try:
             self.channel_layer = get_channel_layer()
-            print(self.channel_layer)
             if self.channel_layer:
                 async_to_sync(self.channel_layer.group_send)(
                         message["group_name"], message
@@ -61,14 +59,14 @@ class TrainModel:
             print("Error occured",e)
 
     def train(self):
-        print("Traininia")
         for i in range(self.epoch):
-            print(i)
             predictions,data = self.model.forward(values,i)
             loss = self.criterion(predictions,labels)
             self.losses.append(loss.detach().numpy())
 
             if i%10 == 0 and data:
+                pred = torch.sigmoid(predictions) > 0.5
+                self.graph_message(i,values,pred.tolist(),labels) 
                 weights = []
                 biases = []
                 weights.append([[0]])
@@ -85,10 +83,6 @@ class TrainModel:
                     elif "bias" in name:
                         biases.append([round(v, 2) for v in param_list])
                 
-                # print("Nodes",data)
-                # print("Weights:",weights)
-                # print("Biases:",biases)
-                print("Sending message")
                 message = self.create_message(i,weights,biases,data,loss,1)
                 self.send_web_data(message)
                 
@@ -111,6 +105,17 @@ class TrainModel:
                 "group_name": "ws_train_main",
                 "data": message_data
             }
-
-# tm = TrainModel()
-# tm.train()
+    
+    def graph_message(self,epoch,values,pred,labels):
+        message = {
+                "type": "training_update", 
+                "group_name": "ws_train_graph",
+                "data": {
+                    "epoch": epoch,
+                    "predicted": [p[0] for p in pred],
+                    "x": values[: , 0].tolist(),
+                    "y": values[: , 1].tolist(),
+                    "labels": [e[0] for e in labels.tolist()]
+                }
+            }
+        self.send_web_data(message)
