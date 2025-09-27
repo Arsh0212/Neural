@@ -25,7 +25,7 @@ class NeuralNetwork(nn.Module):
         second_nodes = func.relu(self.fc2(first_nodes))
         output = self.output(second_nodes)
 
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             # Round tensors to 2 decimals
             def round_tensor(t):
                 return [round(v, 2) for v in t.detach().tolist()]
@@ -78,7 +78,7 @@ class TrainModel:
                     # Prepare weights and biases once
                     weights = [[[0]]]
                     biases = [[0]]
-                    
+
                     for name, param in self.model.named_parameters():
                         param_list = param.detach().tolist()
                         if "weight" in name:
