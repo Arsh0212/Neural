@@ -23,6 +23,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-u4kasw_%_qpx!9q7)zg^b
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    "neural-production-c6ed.up.railway.app",
     'neural-lvo1.onrender.com',
     'localhost',
     '127.0.0.1',
