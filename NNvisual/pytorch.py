@@ -13,14 +13,14 @@ from sklearn.datasets import make_moons, make_circles, make_blobs, make_classifi
 
 def get_dataset(num: int):
     if num == 1:
-        values, labels = make_moons(n_samples=300, noise=0.2, random_state=42)
+        values, labels = make_moons(n_samples=200, noise=0.2, random_state=42)
 
     elif num == 2:
-        values, labels = make_circles(n_samples=300, noise=0.2, random_state=42)
+        values, labels = make_circles(n_samples=200, noise=0.2, random_state=42)
 
-    elif num == 3:
+    elif num == 4:
         values, labels = make_blobs(
-            n_samples=300,
+            n_samples=200,
             centers=2,
             n_features=2,     # always 2D input
             cluster_std=1.5,
@@ -29,7 +29,7 @@ def get_dataset(num: int):
 
     elif num == 4:
         values, labels = make_classification(
-            n_samples=300,
+            n_samples=200,
             n_features=2,     # force 2 input features
             n_informative=2,  # both features matter
             n_redundant=0,
@@ -105,6 +105,7 @@ class TrainModel:
             try:
                 channel_layer = get_channel_layer()
                 if channel_layer:
+                    print(channel_layer)
                     async_to_sync(channel_layer.group_send)(
                         msg["group_name"], msg
                     )
