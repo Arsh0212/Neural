@@ -3,6 +3,7 @@ from django.http import JsonResponse
 import threading
 import asyncio
 from NNvisual.pytorch import TrainModel
+from .models import NeuralNetwork
 
 
 def home(request):
@@ -17,7 +18,8 @@ def graphs(request):
 def pytorch(request):
     def run_training():
         try:
-            tm = TrainModel()
+            db_data = NeuralNetwork.objects.get(id=1)
+            tm = TrainModel(db_data.epoch,db_data.learning_rate,db_data.activation_function, db_data.dataset)
             asyncio.run(tm.train())
             print("Training finished successfully")
         except Exception as e:
