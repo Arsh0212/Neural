@@ -72,7 +72,7 @@ class NeuralNetwork(nn.Module):
         second_nodes = activation(self.fc2(first_nodes))
         output = self.output(second_nodes)
 
-        if epoch % 2 == 0:
+        if epoch % 4 == 0:
             # Round tensors to 2 decimals
             def round_tensor(t):
                 return [round(v, 2) for v in t.detach().tolist()]
@@ -123,7 +123,7 @@ class TrainModel:
             loss = self.criterion(predictions, labels)
             self.losses.append(loss.item())
 
-            if i % 2 == 0 and data:
+            if i % 4 == 0 and data:
                 with torch.no_grad():
                     pred_probs = torch.sigmoid(predictions)
                     pred = pred_probs > 0.5
@@ -154,7 +154,7 @@ class TrainModel:
             self.optimized.step()
             print(f"Epoch {i} Phase 1:",time.time()-start_time)
             
-            if i % 2 == 0:
+            if i % 4 == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation for neural network visualization ---
