@@ -18,6 +18,7 @@ def pytorch(request):
         try:
             tm = TrainModel()
             tm.train()
+            tm.cleanup()
             print("Training finished successfully")
         except Exception as e:
             print("Error during training:", e)
