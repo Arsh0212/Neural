@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 import threading
+import asyncio
 from NNvisual.pytorch import TrainModel
 
 
@@ -17,8 +18,7 @@ def pytorch(request):
     def run_training():
         try:
             tm = TrainModel()
-            tm.train()
-            tm.cleanup()
+            asyncio.run(tm.train())
             print("Training finished successfully")
         except Exception as e:
             print("Error during training:", e)
