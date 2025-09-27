@@ -69,30 +69,32 @@ class TrainModel:
             start_time = time.time()
             predictions, data = self.model.forward(values, i)
             loss = self.criterion(predictions, labels)
-            self.losses.append(loss.detach().numpy())
+            self.losses.append(loss.item())
 
-            if i % 10 == 0 and data:
-                pred = torch.sigmoid(predictions) > 0.5
+            if i % 1 == 0 and data:
+                with torch.no_grad():
+                    pred = torch.sigmoid(predictions) > 0.5
 
-                # Prepare weights and biases once
-                weights = [[[0]]]
-                biases = [[0]]
-                for name, param in self.model.named_parameters():
-                    param_list = param.detach().tolist()
-                    if "weight" in name:
-                        weights.append([[round(v, 2) for v in row] for row in param_list])
-                    elif "bias" in name:
-                        biases.append([round(v, 2) for v in param_list])
+                    # Prepare weights and biases once
+                    weights = [[[0]]]
+                    biases = [[0]]
+                    
+                    for name, param in self.model.named_parameters():
+                        param_list = param.detach().tolist()
+                        if "weight" in name:
+                            weights.append([[round(v, 2) for v in row] for row in param_list])
+                        elif "bias" in name:
+                            biases.append([round(v, 2) for v in param_list])
 
-                message = self.create_message(i, weights, biases, data, loss)
-                self.send_web_data_threaded(message)
+                    message = self.create_message(i, weights, biases, data, loss)
+                    self.send_web_data_threaded(message)
 
             self.optimized.zero_grad()
             loss.backward()
             self.optimized.step()
             print(f"Epoch {i} Phase 1:",time.time()-start_time)
             # Optional: print epoch time
-            if i % 10 == 0:
+            if i % 1 == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation ---
