@@ -116,9 +116,9 @@ class TrainModel:
 
     # --- Training loop ---
     async def train(self):
+        values, labels = get_dataset(self.num)
         for i in range(self.epoch):
-            start_time = time.time()
-            values, labels = get_dataset(self.num)
+            start_time = time.time()  
             predictions, data = self.model.forward(values, i, self.activation)
             loss = self.criterion(predictions, labels)
             self.losses.append(loss.item())
