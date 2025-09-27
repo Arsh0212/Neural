@@ -70,6 +70,7 @@ class TrainModel:
             predictions, data = self.model.forward(values, i)
             loss = self.criterion(predictions, labels)
             self.losses.append(loss.detach().numpy())
+            print(f"Epoch {i} Phase 1:",time.time()-start_time)
 
             if i % 10 == 0 and data:
                 pred = torch.sigmoid(predictions) > 0.5
