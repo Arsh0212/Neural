@@ -11,7 +11,6 @@ class WebSocketManager {
     connect() {
         try {
             this.ws = new WebSocket(this.url);
-            console.log("Hello")
             this.ws.onopen = () => {
                 console.log("Connection Established")
                 this.isConnected = true;

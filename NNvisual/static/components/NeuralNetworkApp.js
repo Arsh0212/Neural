@@ -104,7 +104,6 @@ class NeuralNetworkApp {
                 this.metricsPanel.updateStatus(true);
             },
             onMessage: (data) => {
-                console.log("Epoch data received",data)
                 if (data.type === 'send_epoch_update'){
                 this.handleUpdate(data.data);
                 }
