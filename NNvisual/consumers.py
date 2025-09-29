@@ -6,7 +6,7 @@ import copy
 
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-  
+ 
         session = self.scope["session"]
         if not session.session_key:
             await sync_to_async(session.save)()
@@ -63,11 +63,9 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
 
     # Receive message from the group (from train_model.py)
     async def send_epoch_update(self, event):
-        # event["data"] contains the payload sent from WSLogger callback
         if "ws_train_main" in self.group_name:
             await self.send(text_data=json.dumps(event))
 
     async def training_update(self, event):
-        # event["data"] contains the payload sent from train_model.py
         if "ws_train_graph" in self.group_name:
             await self.send(text_data=json.dumps(event))

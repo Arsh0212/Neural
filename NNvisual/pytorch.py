@@ -153,7 +153,7 @@ class TrainModel:
                     )
                     self.send_web_data_threaded(graph_message)
 
-            if i % max(1, self.epoch//10) == 0:
+            if i % max(1, self.epoch//10) == 0 and self.session_id != "dummy_global":
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation for neural network visualization ---
