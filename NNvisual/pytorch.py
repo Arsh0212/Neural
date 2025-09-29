@@ -1,13 +1,16 @@
 import torch
-import asyncio
 import time
+import threading
 from torch import nn
+from .models import NeuralNetwork
 import torch.nn.functional as func
 from asgiref.sync import async_to_sync
-from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
+from torch.utils.data import TensorDataset,DataLoader
 from channels.layers import get_channel_layer
-import threading
-from .models import NeuralNetwork
+from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
+
+
+
 
 from sklearn.datasets import make_moons, make_circles, make_blobs, make_classification
 
@@ -50,7 +53,7 @@ ACTIVATIONS = {
     "relu": func.relu,
     "sigmoid": func.sigmoid,
     "tanh": func.tanh,
-    "linear":func.linear
+    "linear":lambda x :x
 }
 
 def get_activation(name: str):
@@ -88,7 +91,7 @@ class NeuralNetwork(nn.Module):
 
 
 class TrainModel:
-    def __init__(self, epoch, lr, activation, num,session_id):
+    def __init__(self, epoch, lr, activation, num, batch_size, session_id):
         torch.manual_seed(41)
         
         self.model = NeuralNetwork()
@@ -96,6 +99,7 @@ class TrainModel:
         self.optimized = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.epoch = epoch
         self.num = num
+        self.batch_size = batch_size
         self.activation = activation
         self.session_id = session_id
         self.losses = []
@@ -116,12 +120,14 @@ class TrainModel:
 
     # --- Training loop ---
     async def train(self):
-        print(self.num)
         values, labels = get_dataset(self.num)
+        dataset = TensorDataset(values, labels)
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         for i in range(self.epoch):
-            start_time = time.time()  
-            predictions, data = self.model.forward(values, i, self.activation)
-            loss = self.criterion(predictions, labels)
+            start_time = time.time()
+            for batch_values, batch_labels in loader:
+                predictions, data = self.model.forward(batch_values, i, self.activation)
+                loss = self.criterion(predictions, batch_labels)
             self.losses.append(loss.item())
 
             if i % 2 == 0 and data:
@@ -154,7 +160,7 @@ class TrainModel:
             loss.backward()
             self.optimized.step()
             
-            if i % 2 == 0:
+            if i % (self.epoch//10) == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation for neural network visualization ---

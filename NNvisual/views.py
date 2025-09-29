@@ -29,6 +29,7 @@ def pytorch(request):
             nn_config["learning_rate"],
             nn_config["activation_function"],
             nn_config["dataset"],
+            nn_config["batch_size"],
             request.session.session_key[:5]
                         )
         
