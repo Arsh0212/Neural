@@ -146,8 +146,8 @@ class TrainModel:
             if epoch % 2 == 0 and epoch_data:
                 with torch.no_grad():
                     # Get predictions for THE ENTIRE DATASET (not just last batch)
-                    full_predictions, _ = self.model.forward(values, epoch, self.activation)
-                    pred_probs = torch.sigmoid(full_predictions)
+                    # full_predictions, _ = self.model.forward(values, epoch, self.activation)
+                    pred_probs = torch.sigmoid(predictions)
                     pred_labels = (pred_probs > 0.5).float()  # Binary 0 or 1
 
                     # Prepare weights and biases
