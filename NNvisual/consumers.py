@@ -5,6 +5,15 @@ import json
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         from .models import NeuralNetwork
+
+
+        session = self.scope["session"]
+        if not session.session_key:
+            await sync_to_async(session.save)()
+
+        self.session_id = session.session_key
+        print("Session_Id:",self.session_id)
+
         if "main" in self.scope["path"]:
             self.group_name = "ws_train_main"
         elif "metrics" in self.scope["path"]:
@@ -13,6 +22,8 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
             self.group_name = "ws_train_graph"
         else:
             self.group_name = "ws_train_default"
+
+        
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         print(self.group_name)
         await self.accept()

@@ -7,6 +7,10 @@ from .models import NeuralNetwork
 
 
 def home(request):
+    if not request.session.session_key:
+        request.session.save()
+    session_id = request.session.session_key
+    print(session_id)
     return render(request, 'NNvisual/Main.html')
 
 def blog(request):
@@ -19,7 +23,14 @@ def pytorch(request):
     def run_training():
         try:
             db_data = NeuralNetwork.objects.get(id=1)
-            tm = TrainModel(db_data.epoch,db_data.learning_rate,db_data.activation_function, db_data.dataset)
+            tm = TrainModel(
+                db_data.epoch,
+                db_data.learning_rate,
+                db_data.activation_function,
+                db_data.dataset,
+                request.session.session_key
+                            )
+            
             asyncio.run(tm.train())
             print("Training finished successfully")
         except Exception as e:

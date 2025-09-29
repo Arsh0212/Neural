@@ -88,7 +88,7 @@ class NeuralNetwork(nn.Module):
 
 
 class TrainModel:
-    def __init__(self, epoch, lr, activation, num):
+    def __init__(self, epoch, lr, activation, num,session_id):
         torch.manual_seed(41)
         
         self.model = NeuralNetwork()
@@ -97,6 +97,7 @@ class TrainModel:
         self.epoch = epoch
         self.num = num
         self.activation = activation
+        self.session_id = session_id
         self.losses = []
 
     # --- Threaded WebSocket sending ---
@@ -105,7 +106,7 @@ class TrainModel:
             try:
                 channel_layer = get_channel_layer()
                 if channel_layer:
-                    print(channel_layer)
+                    print("Session Id:",self.session_id)
                     async_to_sync(channel_layer.group_send)(
                         msg["group_name"], msg
                     )
@@ -152,7 +153,6 @@ class TrainModel:
             self.optimized.zero_grad()
             loss.backward()
             self.optimized.step()
-            print(f"Epoch {i} Phase 1:",time.time()-start_time)
             
             if i % 4 == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
