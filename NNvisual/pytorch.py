@@ -11,7 +11,7 @@ from sklearn.datasets import make_moons, make_blobs, make_circles, make_classifi
 from sklearn.preprocessing import StandardScaler
 
 
-torch.set_num_threads(torch.get_num_threads())  # use all cores
+# torch.set_num_threads(torch.get_num_threads())  # use all cores
 
 from sklearn.datasets import make_moons, make_circles, make_blobs, make_classification
 
