@@ -169,7 +169,7 @@ class TrainModel:
         }
         return {
             "type": "send_epoch_update",
-            "group_name": "ws_train_main",
+            "group_name": "ws_train_main_"+self.session_id,
             "data": message_data
         }
 
@@ -193,6 +193,6 @@ class TrainModel:
         
         return {
             "type": "training_update",  # This matches what your frontend expects
-            "group_name": "ws_train_graph",  # Use appropriate group name
+            "group_name": "ws_train_graph_"+self.session_id,  # Use appropriate group name
             "data": message_data
         }

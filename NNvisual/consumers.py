@@ -11,15 +11,15 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         if not session.session_key:
             await sync_to_async(session.save)()
 
-        self.session_id = session.session_key
+        self.session_id = session.session_key[:5]
         print("Session_Id:",self.session_id)
 
         if "main" in self.scope["path"]:
-            self.group_name = "ws_train_main"
+            self.group_name = "ws_train_main_"+self.session_id
         elif "metrics" in self.scope["path"]:
-            self.group_name = "ws_train_metrics"
+            self.group_name = "ws_train_metrics_"+self.session_id
         elif "graph" in self.scope["path"]:
-            self.group_name = "ws_train_graph"
+            self.group_name = "ws_train_graph_"+self.session_id
         else:
             self.group_name = "ws_train_default"
 
@@ -74,11 +74,11 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def send_epoch_update(self, event):
         # event["data"] contains the payload sent from WSLogger callback
         print(self.group_name)
-        if self.group_name == "ws_train_main":
+        if "ws_train_main" in self.group_name:
             await self.send(text_data=json.dumps(event))
 
     async def training_update(self, event):
         # event["data"] contains the payload sent from train_model.py
         print(self.group_name)
-        if self.group_name == "ws_train_graph":
+        if "ws_train_graph" in self.group_name:
             await self.send(text_data=json.dumps(event))

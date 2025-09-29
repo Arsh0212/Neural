@@ -28,7 +28,7 @@ def pytorch(request):
                 db_data.learning_rate,
                 db_data.activation_function,
                 db_data.dataset,
-                request.session.session_key
+                request.session.session_key[:5]
                             )
             
             asyncio.run(tm.train())
