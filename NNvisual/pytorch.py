@@ -106,7 +106,6 @@ class TrainModel:
             try:
                 channel_layer = get_channel_layer()
                 if channel_layer:
-                    print("Session Id:",self.session_id)
                     async_to_sync(channel_layer.group_send)(
                         msg["group_name"], msg
                     )
