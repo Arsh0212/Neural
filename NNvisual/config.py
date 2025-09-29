@@ -1,5 +1,3 @@
-from .models import NeuralNetwork
-
 NN_config = {
     "User" : {
         "epoch" : 100,
