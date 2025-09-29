@@ -36,9 +36,9 @@ def pytorch(request):
         print("Training finished successfully")
         # except Exception as e:
         #     print("Error during training:", e)
-
+    run_training()
     # Run training in background thread
-    thread = threading.Thread(target=run_training)
-    thread.start()
+    # thread = threading.Thread(target=run_training)
+    # thread.start()
 
     return JsonResponse({"status": "Training started"})
