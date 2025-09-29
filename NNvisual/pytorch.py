@@ -116,6 +116,7 @@ class TrainModel:
 
     # --- Training loop ---
     async def train(self):
+        print(self.num)
         values, labels = get_dataset(self.num)
         for i in range(self.epoch):
             start_time = time.time()  

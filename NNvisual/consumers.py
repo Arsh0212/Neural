@@ -11,7 +11,6 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
             await sync_to_async(session.save)()
 
         self.session_id = session.session_key[:5]
-        print("Session_Id:",self.session_id)
 
         if "main" in self.scope["path"]:
             self.group_name = "ws_train_main_"+self.session_id
@@ -53,7 +52,7 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         # You could use this to pause/resume training, etc.
         if data.get("type") == "config": 
             data = data.get("config") 
-            print(data)
+            # print(data)
 
             NN_config[self.session_id] = {
                 "epoch" : data.get("epochs"),
@@ -66,12 +65,10 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     # Receive message from the group (from train_model.py)
     async def send_epoch_update(self, event):
         # event["data"] contains the payload sent from WSLogger callback
-        print(self.group_name)
         if "ws_train_main" in self.group_name:
             await self.send(text_data=json.dumps(event))
 
     async def training_update(self, event):
         # event["data"] contains the payload sent from train_model.py
-        print(self.group_name)
         if "ws_train_graph" in self.group_name:
             await self.send(text_data=json.dumps(event))

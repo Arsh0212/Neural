@@ -20,11 +20,10 @@ def graphs(request):
 def pytorch(request):
     def run_training():
         # try:
-        if request.session.session_key in NN_config.keys():
-            nn_config = NN_config[request.session.session_key]
+        if request.session.session_key[:5] in NN_config.keys():
+            nn_config = NN_config[request.session.session_key[:5]]
         else:
             nn_config = NN_config["User"]
-
         tm = TrainModel(
             nn_config["epoch"],
             nn_config["learning_rate"],
