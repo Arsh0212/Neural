@@ -1,10 +1,9 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-import threading
-import asyncio
 from NNvisual.pytorch import TrainModel
 from .config import NN_config
-
+import threading
+import asyncio
 
 def home(request):
     if not request.session.session_key:

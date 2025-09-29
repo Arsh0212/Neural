@@ -2,18 +2,12 @@ import torch
 import time
 import threading
 from torch import nn
-from .models import NeuralNetwork
 import torch.nn.functional as func
 from asgiref.sync import async_to_sync
 from torch.utils.data import TensorDataset,DataLoader
 from channels.layers import get_channel_layer
 from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
-from sklearn.preprocessing import StandardScaler
-
-
-# torch.set_num_threads(torch.get_num_threads())  # use all cores
-
-from sklearn.datasets import make_moons, make_circles, make_blobs, make_classification
+# from sklearn.preprocessing import StandardScaler
 
 def get_dataset(num: int):
     if num == 1:
@@ -45,8 +39,8 @@ def get_dataset(num: int):
     else:
         raise ValueError("Invalid dataset number (choose 1–4)")
     
-    scaler = StandardScaler()
-    values = scaler.fit_transform(values)
+    # scaler = StandardScaler()
+    # values = scaler.fit_transform(values)
 
     values = torch.FloatTensor(values)
     labels = torch.FloatTensor(labels).unsqueeze(1)
