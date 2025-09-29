@@ -2,6 +2,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from .config import NN_config
 import json
+import copy
 
 class NeuralNetworkConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -23,13 +24,12 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
 
         
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        print(self.group_name)
         await self.accept()
 
         if self.session_id in NN_config.keys():
             nn_config = NN_config[self.session_id]
         else:
-            nn_config = NN_config["User"]
+            nn_config = copy.deepcopy(NN_config["User"])
             NN_config[self.session_id] = NN_config["User"]
 
         await self.send(text_data=json.dumps({
@@ -52,7 +52,6 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         # You could use this to pause/resume training, etc.
         if data.get("type") == "config": 
             data = data.get("config") 
-            # print(data)
 
             NN_config[self.session_id] = {
                 "epoch" : data.get("epochs"),

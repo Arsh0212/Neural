@@ -8,9 +8,10 @@ from asgiref.sync import async_to_sync
 from torch.utils.data import TensorDataset,DataLoader
 from channels.layers import get_channel_layer
 from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
+from sklearn.preprocessing import StandardScaler
 
 
-
+torch.set_num_threads(torch.get_num_threads())  # use all cores
 
 from sklearn.datasets import make_moons, make_circles, make_blobs, make_classification
 
@@ -21,7 +22,7 @@ def get_dataset(num: int):
     elif num == 2:
         values, labels = make_circles(n_samples=200, noise=0.2, random_state=42)
 
-    elif num == 4:
+    elif num == 3:
         values, labels = make_blobs(
             n_samples=200,
             centers=2,
@@ -43,6 +44,9 @@ def get_dataset(num: int):
 
     else:
         raise ValueError("Invalid dataset number (choose 1–4)")
+    
+    scaler = StandardScaler()
+    values = scaler.fit_transform(values)
 
     values = torch.FloatTensor(values)
     labels = torch.FloatTensor(labels).unsqueeze(1)
@@ -123,22 +127,37 @@ class TrainModel:
         values, labels = get_dataset(self.num)
         dataset = TensorDataset(values, labels)
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        for i in range(self.epoch):
+
+        for epoch in range(self.epoch):
             start_time = time.time()
+            epoch_loss = 0
+            epoch_data = None
+
+            # --- Batch training ---
             for batch_values, batch_labels in loader:
-                predictions, data = self.model.forward(batch_values, i, self.activation)
+                self.optimized.zero_grad()
+                predictions, batch_data = self.model.forward(batch_values, epoch, self.activation)
                 loss = self.criterion(predictions, batch_labels)
-            self.losses.append(loss.item())
+                loss.backward()
+                self.optimized.step()
+                epoch_loss += loss.item() * batch_values.size(0)
+                
+                if batch_data is not None:
+                    epoch_data = batch_data
 
-            if i % 2 == 0 and data:
+            epoch_loss /= len(dataset)
+            self.losses.append(epoch_loss)
+
+            # --- WebSocket updates ---
+            if epoch % 2 == 0 and epoch_data:
                 with torch.no_grad():
-                    pred_probs = torch.sigmoid(predictions)
-                    pred = pred_probs > 0.5
+                    # Get predictions for THE ENTIRE DATASET (not just last batch)
+                    full_predictions, _ = self.model.forward(values, epoch, self.activation)
+                    pred_probs = torch.sigmoid(full_predictions)
+                    pred_labels = (pred_probs > 0.5).float()  # Binary 0 or 1
 
-                    # Prepare weights and biases for neural network visualization
-                    weights = [[[0]]]
-                    biases = [[0]]
-
+                    # Prepare weights and biases
+                    weights, biases = [[[0]]], [[0]]
                     for name, param in self.model.named_parameters():
                         param_list = param.detach().tolist()
                         if "weight" in name:
@@ -146,23 +165,18 @@ class TrainModel:
                         elif "bias" in name:
                             biases.append([round(v, 2) for v in param_list])
 
-                    # Send neural network layer data
-                    nn_message = self.create_message(i, weights, biases, data, loss)
+                    # Neural network structure update
+                    nn_message = self.create_message(epoch, weights, biases, epoch_data, loss)
                     self.send_web_data_threaded(nn_message)
 
-                    # Send training data for graph visualization
+                    # Graph training update - NOW WITH CORRECT PREDICTIONS
                     graph_message = self.create_training_update_message(
-                        i, values, labels, pred
+                        epoch, values, labels, pred_labels
                     )
                     self.send_web_data_threaded(graph_message)
 
-            self.optimized.zero_grad()
-            loss.backward()
-            self.optimized.step()
-            
-            if i % (self.epoch//10) == 0:
-                print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
-
+            if epoch % max(1, (self.epoch // 10)) == 0:
+                print(f"Epoch {epoch}, avg loss: {epoch_loss:.4f}, time: {time.time() - start_time:.2f}s")
     # --- Message creation for neural network visualization ---
     def create_message(self, epoch, weights, biases, nodes, loss, accuracy=1):
         message_data = {
