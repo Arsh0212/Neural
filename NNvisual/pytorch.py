@@ -2,7 +2,7 @@ import torch
 import time
 import threading
 from torch import nn
-# from .models import NeuralNetwork
+from .models import NeuralNetwork
 import torch.nn.functional as func
 from asgiref.sync import async_to_sync
 from torch.utils.data import TensorDataset,DataLoader
@@ -18,15 +18,15 @@ def get_dataset(num: int):
         values, labels = make_blobs(
             n_samples=200,
             centers=2,
-            n_features=2,     # always 2D input
+            n_features=2,
             cluster_std=1.5,
             random_state=42
         )
     elif num == 4:
         values, labels = make_classification(
             n_samples=200,
-            n_features=2,     # force 2 input features
-            n_informative=2,  # both features matter
+            n_features=2,
+            n_informative=2,
             n_redundant=0,
             n_clusters_per_class=1,
             n_classes=2,
@@ -43,7 +43,7 @@ ACTIVATIONS = {
     "relu": func.relu,
     "sigmoid": func.sigmoid,
     "tanh": func.tanh,
-    "linear":lambda x :x
+    "linear": lambda x: x
 }
 
 def get_activation(name: str):
@@ -65,7 +65,7 @@ class NeuralNetwork(nn.Module):
         second_nodes = activation(self.fc2(first_nodes))
         output = self.output(second_nodes)
 
-        if epoch % 2== 0:
+        if epoch % 2 == 0:
             # Round tensors to 2 decimals
             def round_tensor(t):
                 return [round(v, 2) for v in t.detach().tolist()]
@@ -110,19 +110,28 @@ class TrainModel:
     # --- Training loop ---
     async def train(self):
         values, labels = get_dataset(self.num)
+        dataset = TensorDataset(values, labels)
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
         for i in range(self.epoch):
             start_time = time.time()
-            predictions, data = self.model.forward(values, i, self.activation)
-            loss = self.criterion(predictions,labels)
+
+            for batch_values, batch_labels in loader:
+                predictions, data = self.model.forward(batch_values, i, self.activation)
+                loss = self.criterion(predictions, batch_labels)
+
+                self.optimized.zero_grad()
+                loss.backward()
+                self.optimized.step()
+
             self.losses.append(loss.item())
-            self.optimized.zero_grad()
-            loss.backward()
-            self.optimized.step()
 
             if i % 2 == 0 and data:
                 with torch.no_grad():
-                    pred_probs = torch.sigmoid(predictions)
-                    pred = pred_probs > 0.5
+                    # Get predictions for the ENTIRE dataset
+                    full_predictions, _ = self.model.forward(values, i, self.activation)
+                    pred_probs = torch.sigmoid(full_predictions)
+                    pred = (pred_probs > 0.5).float()
 
                     # Prepare weights and biases for neural network visualization
                     weights = [[[0]]]
@@ -144,7 +153,7 @@ class TrainModel:
                     )
                     self.send_web_data_threaded(graph_message)
 
-            if i % (self.epoch//10) == 0:
+            if i % max(1, self.epoch//10) == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation for neural network visualization ---
@@ -163,15 +172,15 @@ class TrainModel:
             "data": message_data
         }
 
-    # --- NEW: Message creation for graph visualization ---
+    # --- Message creation for graph visualization ---
     def create_training_update_message(self, epoch, values, labels, predictions):
         """Create training update message for graph visualization"""
         
         # Convert tensors to lists and flatten if needed
-        x_data = values[:, 0].detach().tolist()  # First column (x coordinates)
-        y_data = values[:, 1].detach().tolist()  # Second column (y coordinates)
-        labels_data = labels.squeeze().detach().tolist()  # Remove extra dimension
-        pred_data = predictions.squeeze().detach().tolist()  # Probability predictions
+        x_data = values[:, 0].detach().tolist()
+        y_data = values[:, 1].detach().tolist()
+        labels_data = labels.squeeze().detach().tolist()
+        pred_data = predictions.squeeze().detach().tolist()
         
         message_data = {
             "epoch": epoch,
@@ -182,7 +191,7 @@ class TrainModel:
         }
         
         return {
-            "type": "training_update",  # This matches what your frontend expects
-            "group_name": "ws_train_graph_"+self.session_id,  # Use appropriate group name
+            "type": "training_update",
+            "group_name": "ws_train_graph_"+self.session_id,
             "data": message_data
         }
