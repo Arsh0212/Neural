@@ -242,6 +242,12 @@ class MetricsPanel {
 
     render() {
         return `
+        <div style="text-align: center;
+        font: 600 14px system-ui;
+        color: var(--text-1); padding: var(--s-3) 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;">Neural Network Play-Ground
+        </div>
             <div class="header">
                 <div class="metrics-section">
                     <div class="metrics">
