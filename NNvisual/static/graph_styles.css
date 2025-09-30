@@ -94,7 +94,7 @@
 
 body {
   margin: 0;
-  padding: var(--space-lg);
+  padding: var(--space-sm);
   background: var(--bg-primary);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text-primary);
@@ -108,8 +108,8 @@ body {
 /* Enhanced Container - Fixed height */
 .container {
   display: flex;
-  gap: var(--space-lg);
-  height: 100vh; /* Use full viewport height */
+  gap: var(--space-sm);
+  height: 120vh; /*Use full viewport height */
   position: relative;
   background: var(--bg-primary);
 }
@@ -120,7 +120,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
-  padding: var(--space-xl);
+  padding: var(--space-sm);
   overflow: hidden;
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-lg);
@@ -144,7 +144,7 @@ body {
 .panel-title {
   font-size: var(--text-2xl);
   font-weight: 700;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
   color: var(--text-primary);
   text-align: center;
   background: linear-gradient(135deg, var(--text-accent) 0%, var(--node-positive) 100%);
@@ -179,7 +179,7 @@ body {
 
 /* Enhanced SVG Plot - Full visibility with proper height allocation */
 #plot-svg {
-  width: 100%;
+  width: 200%;
   flex: 1;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -200,7 +200,7 @@ body {
 
 .data-point:hover {
   stroke-width: 3;
-  transform: scale(1.2);
+  transform: scale(0.999);
   filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.2));
 }
 
@@ -214,9 +214,9 @@ body {
 
 /* Enhanced Grid Lines */
 .grid-line {
-  stroke: var(--border-light);
+  stroke: var(--border-medium);
   stroke-width: 0.5;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* Enhanced Axes - improved visibility */

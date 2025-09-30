@@ -1,5 +1,6 @@
 import torch
 import time
+import numpy as np
 import threading
 from torch import nn
 import torch.nn.functional as func
@@ -7,32 +8,39 @@ from asgiref.sync import async_to_sync
 from torch.utils.data import TensorDataset,DataLoader
 from channels.layers import get_channel_layer
 from sklearn.datasets import make_moons, make_blobs, make_circles, make_classification
+from sklearn.preprocessing import StandardScaler
 
 def get_dataset(num: int):
     if num == 1:
-        values, labels = make_moons(n_samples=200, noise=0.2, random_state=42)
+        values, labels = make_moons(n_samples=300, noise=0.2, random_state=42)
     elif num == 2:
-        values, labels = make_circles(n_samples=200, noise=0.2, random_state=42)
+        values, labels = make_circles(n_samples=300, noise=0.2, random_state=42)
     elif num == 3:
         values, labels = make_blobs(
-            n_samples=200,
-            centers=2,
+            n_samples=300,
+            centers=4,
             n_features=2,
-            cluster_std=1.5,
+            cluster_std=1.6,
             random_state=42
         )
+        labels = np.where(labels < 2, 0, 1)
     elif num == 4:
         values, labels = make_classification(
-            n_samples=200,
+            n_samples=300,
             n_features=2,
             n_informative=2,
+            n_repeated=0,
             n_redundant=0,
-            n_clusters_per_class=1,
+            class_sep=1.0,
+            n_clusters_per_class=2,
             n_classes=2,
+            flip_y=0.01,  
             random_state=42
         )
     else:
         raise ValueError("Invalid dataset number (choose 1–4)")
+    scaler = StandardScaler()
+    values = scaler.fit_transform(values)
     
     values = torch.FloatTensor(values)
     labels = torch.FloatTensor(labels).unsqueeze(1)
@@ -112,7 +120,7 @@ class TrainModel:
         dataset = TensorDataset(values, labels)
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
-        for i in range(self.epoch):
+        for i in range(self.epoch+1):
             start_time = time.time()
 
             for batch_values, batch_labels in loader:
@@ -125,7 +133,7 @@ class TrainModel:
 
             self.losses.append(loss.item())
 
-            if i % 2 == 0 and data:
+            if i % 2 == 0 and data and self.session_id != "dummy_global":
                 with torch.no_grad():
                     # Get predictions for the ENTIRE dataset
                     full_predictions, _ = self.model.forward(values, i, self.activation)
@@ -152,7 +160,8 @@ class TrainModel:
                     )
                     self.send_web_data_threaded(graph_message)
 
-            if i % max(1, self.epoch//10) == 0 and self.session_id != "dummy_global":
+            # if i % max(1, self.epoch//10) == 0 and self.session_id != "dummy_global":
+            if i % max(1, self.epoch//10) == 0:
                 print(f"Epoch {i}, loss: {loss.item():.4f}, time: {time.time()-start_time:.2f}s")
 
     # --- Message creation for neural network visualization ---

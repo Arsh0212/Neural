@@ -117,7 +117,7 @@ class NetworkRenderer {
             .attr('height', 30)
             .attr('rx', 6)
             .attr('ry', 6)
-            .style('fill', '#4b5563')
+            .style('fill', '#06b6d4')
             .style('stroke', '#6b7280')
             .style('stroke-width', 1);
 
@@ -127,7 +127,7 @@ class NetworkRenderer {
             .attr('x', 40)
             .attr('y', 20)
             .attr('text-anchor', 'middle')
-            .style('fill', '#e5e7eb')
+            .style('fill', '#f9f9f9ff')
             .style('font', '12px system-ui')
             .style('pointer-events', 'none')
             .text('Help');

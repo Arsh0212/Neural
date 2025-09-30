@@ -325,7 +325,7 @@ class MetricsPanel {
                             <option value="1" ${this.config.dataset === 1 ? 'selected' : ''}>Moons</option>
                             <option value="2" ${this.config.dataset === 2 ? 'selected' : ''}>Circles</option>
                             <option value="3" ${this.config.dataset === 3 ? 'selected' : ''}>Blobs</option>
-                            <option value="4" ${this.config.dataset === 4 ? 'selected' : ''}>Linear</option>
+                            <option value="4" ${this.config.dataset === 4 ? 'selected' : ''}>Random</option>
                         </select>
                     </div>
 
@@ -342,14 +342,7 @@ class MetricsPanel {
                             Train Model
                         </button>
                         
-                        <button 
-                            type="button" 
-                            id="pageBtn" 
-                            class="action-btn secondary-btn"
-                        >
-                            <span class="btn-icon">📊</span>
-                            Graph
-                        </button>
+                        
                     </div>
                     
                     <div class="status">

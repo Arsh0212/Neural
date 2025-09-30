@@ -67,28 +67,29 @@ def ensure_dummy_running():
     """Ensure dummy training is running in background"""
     global _dummy_running, _dummy_thread
     
-    if _dummy_running and _dummy_thread and _dummy_thread.is_alive():
+    # if _dummy_running and _dummy_thread and _dummy_thread.is_alive():
+    if _dummy_thread and _dummy_thread.is_alive():
         return  # Already running
     
     def run_dummy_continuous():
-        global _dummy_running
-        _dummy_running = True
+        # global _dummy_running
+        # _dummy_running = True
         
-        while _dummy_running:
-            try:
-                dummy_tm = TrainModel(
-                    epoch=100,
-                    lr=0.001,
-                    activation="relu",
-                    num=1,
-                    batch_size=16,
-                    session_id="dummy_global"
-                )
-                asyncio.run(dummy_tm.train())
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"Dummy training error: {e}")
-                time.sleep(1)
+        # while _dummy_running:
+        try:
+            dummy_tm = TrainModel(
+                epoch=100,
+                lr=0.001,
+                activation="relu",
+                num=1,
+                batch_size=16,
+                session_id="dummy_global"
+            )
+            asyncio.run(dummy_tm.train())
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Dummy training error: {e}")
+            time.sleep(1)
     
     _dummy_thread = threading.Thread(target=run_dummy_continuous, daemon=True)
     _dummy_thread.start()

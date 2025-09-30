@@ -27,7 +27,8 @@ class NeuralNetworkApp {
                 
                 <div class="main-content">
                     <div class="visualization-panel">
-                        <div class="toggle-panel" onclick="window.neuralApp.toggleMatrixPanel()">Toggle Matrix</div>
+                        <div class="toggle-panel" onclick="window.neuralApp.toggleMatrixPanel()">Matrix View</div>
+                        <div class="toggle-panel" onclick="window.neuralApp.navigateToGraphView()">Graph View</div>
                         <svg id="network-svg"></svg>
                     </div>
                     
@@ -91,6 +92,11 @@ class NeuralNetworkApp {
         if (panel) {
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
+    }
+
+    navigateToGraphView() {
+        // Navigate to the graph view page
+        window.location.href = '/graphs/';  // Change this URL to your actual graph page path
     }
 
     initWebSocket() {

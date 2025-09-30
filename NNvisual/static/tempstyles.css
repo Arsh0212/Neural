@@ -313,22 +313,32 @@ body {
 
 .toggle-panel {
   position: absolute;
-  top: var(--s-3);
   right: var(--s-3);
   padding: var(--s-2) var(--s-3);
-  background: var(--bg-2);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  /* background: var(--bg-2); */
   border: 1px solid var(--border);
   border-radius: var(--r-2);
   font: 500 12px/1 system-ui;
-  color: var(--text-2);
+  color: white;
   cursor: pointer;
   transition: var(--transition);
   z-index: 10;
 }
 
+.toggle-panel:first-of-type {
+  top: var(--s-3);
+}
+
+.toggle-panel:nth-of-type(2) {
+  top: calc(var(--s-3) + 44px); /* Adjust based on button height + gap */
+}
+
+
 .toggle-panel:hover {
-  background: var(--bg-hover);
-  color: var(--text-1);
+  /* background: var(--bg-hover); */
+  background: linear-gradient(135deg, #a855f7 0%, #d946ef 50%, #ec4899 100%);
+  color: white;
   transform: translateY(-1px);
 }
 
