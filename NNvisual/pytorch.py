@@ -2,7 +2,6 @@ import torch
 import time
 import threading
 from torch import nn
-from .models import NeuralNetwork
 import torch.nn.functional as func
 from asgiref.sync import async_to_sync
 from torch.utils.data import TensorDataset,DataLoader
