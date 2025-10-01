@@ -1,9 +1,9 @@
 NN_config = {
     "User" : {
-        "epoch" : 500,
+        "epoch" : 300,
         "batch_size" : 80,
-        "learning_rate" : 0.001,
+        "learning_rate" : 1.0,
         "activation_function" : "linear",
-        "dataset" : 3
+        "dataset" : 1
     }
 }

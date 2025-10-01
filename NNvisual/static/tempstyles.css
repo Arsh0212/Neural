@@ -85,12 +85,13 @@ body {
 .metrics, .controls-section { display: flex; align-items: center; gap: var(--s-4); }
 
 .metric, .control-group {
-  padding: var(--s-2) var(--s-3);
+  padding: var(--s-2) var(--s-1);
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--r-3);
   transition: var(--transition);
   text-align: center;
+  min-width: 100px;
 }
 
 .metric:hover, .control-group:hover {

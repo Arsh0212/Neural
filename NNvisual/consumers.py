@@ -32,6 +32,25 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
             nn_config = copy.deepcopy(NN_config["User"])
             NN_config[self.session_id] = NN_config["User"]
 
+
+        msg = {
+            "type": "training_update",
+            "group_name": "ws_train_graph_" + self.session_id,
+            "data": {
+                "epoch": 0,
+                "x": [],
+                "y": [],
+                "labels": [],
+                "predicted": []
+            }
+        }
+
+        await self.send(text_data=json.dumps(msg))
+
+        
+
+        
+
         await self.send(text_data=json.dumps({
             "type": "config",
             "config": {
