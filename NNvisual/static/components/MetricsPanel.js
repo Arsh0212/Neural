@@ -251,11 +251,11 @@ class MetricsPanel {
             <div class="header">
                 <div class="metrics-section">
                     <div class="metrics">
-                        <div class="metric">
-                            <div class="metric-label">Epoch</div>
+                        <div class="metric" title="Running Epochs">
+                            <div class="metric-label" title="Running Epochs">Epoch</div>
                             <div class="metric-value" id="epochValue">0</div>
                         </div>
-                        <div class="metric">
+                        <div class="metric" title="Loss should be minimum">
                             <div class="metric-label">Loss</div>
                             <div class="metric-value" id="lossValue">-</div>
                         </div>
@@ -279,12 +279,12 @@ class MetricsPanel {
                         />
                     </div>
                     
-                    <div class="control-group">
+                    <div class="control-group" title="Keep it low (0.01)">
                         <label class="control-label">
                             <span class="label-icon">📊</span>
                             Learning Rate
                         </label>
-                        <select id="learningRateSelect" class="control-select enhanced-select">
+                        <select id="learningRateSelect" class="control-select enhanced-select" >
                             <option value="1" ${this.config.learningRate === 1 ? 'selected' : ''}>1.0</option>
                             <option value="0.1" ${this.config.learningRate === 0.1 ? 'selected' : ''}>0.1</option>
                             <option value="0.01" ${this.config.learningRate === 0.01 ? 'selected' : ''}>0.01</option>
@@ -309,12 +309,12 @@ class MetricsPanel {
                         />
                     </div>
                     
-                    <div class="control-group">
+                    <div class="control-group" title="Use relu/tanh">
                         <label class="control-label">
                             <span class="label-icon">🔄</span>
                             Activation
                         </label>
-                        <select id="activationSelect" class="control-select enhanced-select">
+                        <select id="activationSelect" class="control-select enhanced-select" >
                             <option value="relu" ${this.config.activationFunction === 'relu' ? 'selected' : ''}>ReLU</option>
                             <option value="sigmoid" ${this.config.activationFunction === 'sigmoid' ? 'selected' : ''}>Sigmoid</option>
                             <option value="tanh" ${this.config.activationFunction === 'tanh' ? 'selected' : ''}>Tanh</option>
@@ -322,7 +322,7 @@ class MetricsPanel {
                         </select>
                     </div>
 
-                    <div class="control-group">
+                    <div class="control-group" title="Try different Datasets">
                         <label class="control-label">
                             <span class="label-icon"></span>
                             Dataset

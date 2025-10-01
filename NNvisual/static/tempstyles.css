@@ -108,6 +108,12 @@ body {
   margin-bottom: var(--s-1);
 }
 
+#lossValue {
+    font-size: 20px;
+    color: red;
+    font-weight: bold;
+}
+
 .metric-value {
   font: 700 20px/1 system-ui;
   color: var(--text-1);
