@@ -47,7 +47,6 @@ class NeuralNetworkConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
-        # from .models import NeuralNetwork
         data = json.loads(text_data)
         # You could use this to pause/resume training, etc.
         if data.get("type") == "config": 

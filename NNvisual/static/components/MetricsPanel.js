@@ -274,7 +274,7 @@ class MetricsPanel {
                             class="control-input" 
                             value="${this.config.epochs}"
                             min="10"
-                            max="10000"
+                            max="1000"
                             step="10"
                         />
                     </div>
@@ -304,7 +304,7 @@ class MetricsPanel {
                             class="control-input" 
                             value="${this.config.batchSize}"
                             min="10"
-                            max="1000"
+                            max="300"
                             step="10"
                         />
                     </div>
